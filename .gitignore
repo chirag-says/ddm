@@ -1,0 +1,134 @@
+# DealDirect mobile — Expo / React Native, own repo.
+#
+# Scaffolding only at present (milestones M1–M2 of 14); the feature screens
+# are placeholder stubs. The signing-material rules below matter well before
+# that changes, because a leaked keystore or .p8 cannot be rotated quietly.
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+.npm/
+.pnpm-store/
+
+# ---------------------------------------------------------------------------
+# Expo and build output
+#
+# /ios and /android are prebuild output in the managed workflow: generated
+# from app.json and regenerated on demand. If this project ever ejects to the
+# bare workflow they become real source and these two lines must go, or the
+# native project disappears from the repo.
+# ---------------------------------------------------------------------------
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+.eas/
+.metro-health-check*
+*.tsbuildinfo
+
+/ios
+/android
+
+# Native build artifacts, in case the project is ejected and the two lines
+# above are removed.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.hprof
+
+# Compiled binaries
+*.apk
+*.aab
+*.ipa
+
+# ---------------------------------------------------------------------------
+# Signing material and secrets
+#
+# These are the ones with no cheap recovery. An Android keystore cannot be
+# replaced without breaking updates for every installed user, and an Apple
+# .p8 key grants API access until it is manually revoked.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.cer
+*.certSigningRequest
+google-services.json
+GoogleService-Info.plist
+credentials.json
+.easignore.local
+
+# ---------------------------------------------------------------------------
+# Logs and coverage
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+coverage/
+.nyc_output/
+
+# ---------------------------------------------------------------------------
+# SCRATCH
+#
+# The previous file carried `test-*.ts`, `test-*.js`, `__*.ts` and `__*.js`.
+# The `test-*` pair is the real hazard: it matches any module named with that
+# prefix and removes it from git with no visible sign.
+#
+# Checked, rather than assumed: `__*.ts` does NOT catch `__tests__/` — a
+# directory called `__tests__` does not end in `.ts`, so React Native's test
+# convention was never at risk. It does catch loose files like `__helpers.ts`.
+# ---------------------------------------------------------------------------
+scratch/
+*.scratch.ts
+*.scratch.tsx
+*.scratch.js
+*.local.ts
+*.local.js
+tmp/
+temp/
+*.tmp
+*.orig.*
+
+# Database dumps, in case one is ever taken from this directory.
+dump/
+dumps/
+backups/
+*.bson
+*.archive
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.sw?
+*~
+.gemini/
+.claude/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini

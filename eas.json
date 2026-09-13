@@ -1,0 +1,61 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:9000/api",
+        "EXPO_PUBLIC_SOCKET_URL": "http://localhost:9000",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1075779807590-dc7hj59kfhb2gqem57esitu2iusalr73.apps.googleusercontent.com"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend.dealdirect.in/api",
+        "EXPO_PUBLIC_SOCKET_URL": "https://backend.dealdirect.in",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1075779807590-dc7hj59kfhb2gqem57esitu2iusalr73.apps.googleusercontent.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend.dealdirect.in/api",
+        "EXPO_PUBLIC_SOCKET_URL": "https://backend.dealdirect.in",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1075779807590-dc7hj59kfhb2gqem57esitu2iusalr73.apps.googleusercontent.com"
+      }
+    },
+    "preview-compact": {
+      "extends": "preview",
+      "env": {
+        "DEALDIRECT_ANDROID_ARCHS": "arm64-v8a",
+        "DEALDIRECT_USE_LEGACY_PACKAGING": "true"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "DEALDIRECT_ANDROID_ARCHS": "arm64-v8a",
+        "DEALDIRECT_USE_LEGACY_PACKAGING": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
