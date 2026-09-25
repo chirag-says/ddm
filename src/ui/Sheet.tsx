@@ -140,17 +140,17 @@ function SheetBody({
       translateY.value = reduceMotion
         ? withTiming(0, { duration: timing.base })
         : withSpring(0, {
-            dampingRatio: spring.sheet.dampingRatio,
-            duration: spring.sheet.duration,
-          });
+          dampingRatio: spring.sheet.dampingRatio,
+          duration: spring.sheet.duration,
+        });
     } else {
       opacity.value = withTiming(0, { duration: timing.fast });
       translateY.value = reduceMotion
         ? withTiming(sheetHeight, { duration: timing.fast })
         : withSpring(sheetHeight, {
-            dampingRatio: spring.sheet.dampingRatio,
-            duration: spring.sheet.duration,
-          });
+          dampingRatio: spring.sheet.dampingRatio,
+          duration: spring.sheet.duration,
+        });
     }
   }, [visible, reduceMotion, sheetHeight, opacity, translateY]);
 
@@ -200,56 +200,56 @@ function SheetBody({
   const { sheet } = theme.elevation;
 
   return (
-      <View className="flex-1 justify-end">
+    <View className="flex-1 justify-end">
+      <Animated.View
+        style={[{ backgroundColor: theme.colors.scrim }, scrimStyle]}
+        className="absolute inset-0"
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          className="flex-1"
+          onPress={close}
+        />
+      </Animated.View>
+
+      <GestureDetector gesture={panGesture}>
         <Animated.View
-          style={[{ backgroundColor: theme.colors.scrim }, scrimStyle]}
-          className="absolute inset-0"
+          onLayout={(event) => {
+            measured.value = event.nativeEvent.layout.height;
+          }}
+          style={[
+            {
+              maxHeight: sheetHeight,
+              paddingBottom: insets.bottom,
+              shadowColor: '#000',
+              shadowOpacity: sheet.shadowOpacity,
+              shadowRadius: sheet.shadowRadius,
+              shadowOffset: { width: 0, height: sheet.shadowOffsetY },
+              elevation: sheet.elevation,
+            },
+            sheetStyle,
+          ]}
+          className="rounded-t-2xl bg-surface"
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            className="flex-1"
-            onPress={close}
-          />
-        </Animated.View>
+          <View className="items-center py-md">
+            <View className="h-xs w-4xl rounded-full bg-border-strong" />
+          </View>
 
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            onLayout={(event) => {
-              measured.value = event.nativeEvent.layout.height;
-            }}
-            style={[
-              {
-                maxHeight: sheetHeight,
-                paddingBottom: insets.bottom,
-                shadowColor: '#000',
-                shadowOpacity: sheet.shadowOpacity,
-                shadowRadius: sheet.shadowRadius,
-                shadowOffset: { width: 0, height: sheet.shadowOffsetY },
-                elevation: sheet.elevation,
-              },
-              sheetStyle,
-            ]}
-            className="rounded-t-2xl bg-surface"
-          >
-            <View className="items-center py-md">
-              <View className="h-xs w-4xl rounded-full bg-border-strong" />
+          {title ? (
+            <View className="border-b border-border px-base pb-md">
+              <Text variant="title3">{title}</Text>
             </View>
+          ) : null}
 
-            {title ? (
-              <View className="border-b border-border px-base pb-md">
-                <Text variant="title3">{title}</Text>
-              </View>
-            ) : null}
-
-            {/* Shrinkable, not `flex-1`: the body takes its content's height
+          {/* Shrinkable, not `flex-1`: the body takes its content's height
                 and gives way to the ceiling, which is what lets a consumer's
                 own ScrollView scroll instead of the sheet clipping it. */}
-            <View className="px-base pt-base" style={{ flexShrink: 1 }}>
-              {children}
-            </View>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+          <View className="px-base pt-base" style={{ flexShrink: 1 }}>
+            {children}
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
