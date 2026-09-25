@@ -25,7 +25,14 @@ export {
   type Collection,
   type Locality,
 } from './collections';
-export { CITIES, citySearchTerm, matchCity, normalizeCityName, type City } from './cities';
+export {
+  CITIES,
+  citySearchTerm,
+  matchCity,
+  matchCityLoosely,
+  normalizeCityName,
+  type City,
+} from './cities';
 export { homeImagery, localityImagery, type HomeImagery } from './imagery';
 export { useCollection, RAIL_LENGTH, type CollectionResult } from './useCollection';
 export { useCityCounts, type CityCount, type CityCountsResult } from './useCityCounts';

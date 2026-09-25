@@ -53,6 +53,7 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { Refreshable, type RefreshableProps } from './Refreshable';
 export { KeyboardAvoider, type KeyboardAvoiderProps } from './KeyboardAvoider';
+export { useKeyboardHeight } from './useKeyboardHeight';
 export { Chip, type ChipProps } from './Chip';
 export {
   PriceLabel,

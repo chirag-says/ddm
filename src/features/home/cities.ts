@@ -288,7 +288,18 @@ export function nearestCity(point: { latitude: number; longitude: number }): Cit
   return best?.city;
 }
 
-/** The free-text term a tile sends to the browse screen. */
+/**
+ * A city as free-text search terms.
+ *
+ * Nothing calls this as of 2026-09-14. `CityGrid` did, and that is how
+ * "Explore by city" lost to the header's city chip: a city stated as TEXT
+ * arrives at Search as a server-side regex, and it loses to the chip's exact
+ * client-side `city` filter riding on the same request. Anything that means a
+ * specific city should say so with a `City.id`, not with words.
+ *
+ * Kept because the text form is still the right one for a suggestion row,
+ * where the user has to be able to see and edit what was searched.
+ */
 export function citySearchTerm(city: City): string {
   return city.aliases[0];
 }

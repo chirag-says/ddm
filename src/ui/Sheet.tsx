@@ -13,6 +13,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 
 import { deceleration, gesture, spring, timing, useTheme } from '@/theme';
 import { Text } from './Text';
+import { useKeyboardHeight } from './useKeyboardHeight';
 
 /**
  * Bottom sheet.
@@ -124,8 +125,48 @@ function SheetBody({
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
 
-  const sheetHeight = Math.round(screenHeight * heightRatio) + insets.bottom;
-  const translateY = useSharedValue(sheetHeight);
+  /**
+   * The keyboard, which the sheet has to get out of the way of itself
+   * (2026-09-14).
+   *
+   * A `KeyboardAvoidingView` INSIDE a sheet cannot fix this. The sheet is
+   * bottom-anchored by the `justify-end` below, so the keyboard covers it from
+   * the bottom up — the surface that has to move is the one the sheet's own
+   * content sits in, not the content. Every sheet in the app that asks for
+   * text (report, close deal, save search, shortlist note, phone verification,
+   * book a unit) had its fields under the keyboard for this reason.
+   *
+   * The keyboard is drawn OVER the bottom system bar, and the sheet already
+   * reserves `insets.bottom` for that bar, so only the part above it is new
+   * space to find. Adding the raw height would leave a navigation-bar-sized
+   * gap between the sheet and the keyboard.
+   */
+  const keyboardHeight = useKeyboardHeight();
+  const keyboardOverlay = Math.max(0, keyboardHeight - insets.bottom);
+
+  /*
+    The ceiling, further bounded by what is actually left on screen.
+
+    `heightRatio` is a fraction of the WHOLE screen, so a 0.85 sheet with a
+    keyboard up asks for more room than exists and would run off the top under
+    the status bar, taking its title and grab handle with it. Clamping here
+    also means the body's own scroll view gets a real bound to scroll within
+    rather than being pushed past the edge.
+  */
+  const ceiling = Math.round(screenHeight * heightRatio) + insets.bottom;
+  const sheetHeight = Math.max(
+    0,
+    Math.min(ceiling, screenHeight - insets.top - keyboardOverlay)
+  );
+  /*
+    How far down "off screen" is, which is NOT the sheet's height once the
+    keyboard is up: the sheet is sitting `keyboardOverlay` above the bottom of
+    the screen, so travelling its own height leaves that much of it still
+    visible over the keyboard as it dismisses.
+  */
+  const dismissDistance = sheetHeight + keyboardOverlay;
+
+  const translateY = useSharedValue(dismissDistance);
   const opacity = useSharedValue(0);
   // The sheet's actual height, measured, since it is content-sized. The
   // drag-to-dismiss threshold is a fraction of what is on screen, not of the
@@ -146,13 +187,13 @@ function SheetBody({
     } else {
       opacity.value = withTiming(0, { duration: timing.fast });
       translateY.value = reduceMotion
-        ? withTiming(sheetHeight, { duration: timing.fast })
-        : withSpring(sheetHeight, {
+        ? withTiming(dismissDistance, { duration: timing.fast })
+        : withSpring(dismissDistance, {
             dampingRatio: spring.sheet.dampingRatio,
             duration: spring.sheet.duration,
           });
     }
-  }, [visible, reduceMotion, sheetHeight, opacity, translateY]);
+  }, [visible, reduceMotion, dismissDistance, opacity, translateY]);
 
   const startY = useSharedValue(0);
 
@@ -174,7 +215,7 @@ function SheetBody({
 
       if (projected > measured.value * DISMISS_THRESHOLD) {
         translateY.value = withSpring(
-          sheetHeight,
+          dismissDistance,
           {
             dampingRatio: spring.sheet.dampingRatio,
             duration: spring.sheet.duration,
@@ -221,6 +262,17 @@ function SheetBody({
             style={[
               {
                 maxHeight: sheetHeight,
+                /*
+                  The lift, on the SURFACE rather than on the container above.
+
+                  Padding the container would move the sheet just as well, but
+                  the scrim is an absolutely positioned child of it and Yoga
+                  resolves `inset-0` against the padding box — so the scrim
+                  would stop short of the bottom of the screen and the strip
+                  behind the keyboard would go uncovered. A margin here leaves
+                  the container full-bleed and moves only what has to move.
+                */
+                marginBottom: keyboardOverlay,
                 paddingBottom: insets.bottom,
                 shadowColor: '#000',
                 shadowOpacity: sheet.shadowOpacity,
@@ -244,7 +296,17 @@ function SheetBody({
 
             {/* Shrinkable, not `flex-1`: the body takes its content's height
                 and gives way to the ceiling, which is what lets a consumer's
-                own ScrollView scroll instead of the sheet clipping it. */}
+                own ScrollView scroll instead of the sheet clipping it.
+
+                This makes the body an AUTO-HEIGHT container, and children must
+                be written for one. A `flex-1` child gets `flexBasis: 0` and
+                grows into free space, and an auto-height parent has no free
+                space to give — Yoga zeroes the remaining space rather than
+                expanding — so it lays out at zero height and disappears. That
+                is what emptied the book-a-unit sheet (2026-09-14): it wrapped
+                its form in a `flex-1` KeyboardAvoidingView and rendered a
+                handle, a title and nothing else. Children that need to fill
+                should use `flexShrink: 1` and let their content size them. */}
             <View className="px-base pt-base" style={{ flexShrink: 1 }}>
               {children}
             </View>

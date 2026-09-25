@@ -19,6 +19,7 @@ import {
   Section,
   UpdatesPreview,
   findCollection,
+  matchCityLoosely,
   setSelectedCity,
   usePopularListings,
   useSelectedCity,
@@ -137,8 +138,28 @@ export default function HomeScreen() {
    * Every affordance lands on Search, which owns results, pagination, filters
    * and compare. Home never renders a feed of its own.
    *
-   * The selected city rides along on all of them, which is what makes the
-   * hero's city chip mean something rather than decorate the top of the screen.
+   * The selected city rides along on requests that name no place of their own,
+   * which is what makes the header's city chip mean something rather than
+   * decorate the top of the screen.
+   *
+   * ---------------------------------------------------------------------------
+   * THE CHIP IS A DEFAULT, NOT A CEILING — fixed 2026-09-14
+   *
+   * It used to ride along on EVERY request: `if (city && !merged.city)`, where
+   * nothing on this screen ever set `merged.city`. So the chip was not a
+   * default at all, it was the only city the user could reach. Tapping Mumbai
+   * in "Explore by city" from a Delhi session sent `search=mumbai&city=delhi`,
+   * and `city` is an exact client-side filter on Search while `search` is a
+   * regex the server runs — the filter wins, every time. The same thing
+   * happened to anyone who TYPED a city into the hero: the preview panel ran
+   * the parsed query and showed Mumbai listings, then "See all" arrived on
+   * Search scoped to Delhi. Two answers to one question.
+   *
+   * A request states its own place when it carries an explicit `city`, or when
+   * its text names one — `matchCityLoosely` is word-bounded and longest-alias
+   * first, so "flats in navi mumbai" resolves to Navi Mumbai and "New Delhi
+   * Road" does not resolve to Delhi. In that case the chip stays out of it and
+   * Search's own parse picks the city out of the query.
    */
   const openSearch = useCallback(
     (
@@ -149,7 +170,8 @@ export default function HomeScreen() {
       }
     ) => {
       const merged = { ...(params ?? {}) } as Record<string, string>;
-      if (city && !merged.city) merged.city = city.id;
+      const statesItsOwnCity = Boolean(merged.city) || matchCityLoosely(merged.search) != null;
+      if (city && !statesItsOwnCity) merged.city = city.id;
       if (Object.keys(merged).length === 0) merged.browse = '1';
       router.push({ pathname: '/(tabs)/search', params: merged });
     },
@@ -385,7 +407,11 @@ export default function HomeScreen() {
 
         <Reveal placeholder={<SectionPlaceholder height={300} />}>
           <Section title="Explore by city" subtitle="Every count below is live inventory">
-            <CityGrid onSelect={(search) => openSearch({ search })} />
+            {/* The tile's own city, as a `city` param rather than as text.
+                `openSearch` leaves the header chip out of a request that
+                already names a city, so this genuinely changes the city
+                rather than being overruled by it. */}
+            <CityGrid onSelect={(selected) => openSearch({ city: selected.id })} />
           </Section>
           </Reveal>
         </Animated.ScrollView>

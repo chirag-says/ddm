@@ -3,7 +3,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { radius, spacing, useTheme } from '@/theme';
 import { PressableScale, Skeleton, Text } from '@/ui';
-import { citySearchTerm, type City } from '../cities';
+import { type City } from '../cities';
 import { useCityCounts } from '../useCityCounts';
 
 /**
@@ -41,7 +41,20 @@ import { useCityCounts } from '../useCityCounts';
 const COLUMNS = 2;
 
 export interface CityGridProps {
-  onSelect: (term: string) => void;
+  /**
+   * The tile's city, not a search term for it.
+   *
+   * It used to hand over `citySearchTerm(city)` — the city's first alias as
+   * free text — and that is how "Explore by city" came to be unable to change
+   * the city. Home scopes every request it makes to the city chip in the
+   * header, so a tile that stated its city only in the query string arrived at
+   * Search as `search=mumbai` alongside `city=<whatever the chip says>`, and
+   * the chip's exact filter won. Tapping Mumbai from Delhi returned Delhi.
+   *
+   * Naming the city as a city makes the request unambiguous, and Home leaves
+   * the chip out of a request that already states where it wants to look.
+   */
+  onSelect: (city: City) => void;
 }
 
 export function CityGrid({ onSelect }: CityGridProps) {
@@ -72,7 +85,7 @@ export function CityGrid({ onSelect }: CityGridProps) {
           count={count}
           approximate={atCeiling}
           width={tileWidth}
-          onPress={() => onSelect(citySearchTerm(city))}
+          onPress={() => onSelect(city)}
         />
       ))}
     </View>
