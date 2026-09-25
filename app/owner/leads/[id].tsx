@@ -23,6 +23,7 @@ import {
   Chip,
   ErrorState,
   Input,
+  KeyboardAvoider,
   PriceLabel,
   Screen,
   ScreenHeader,
@@ -109,9 +110,13 @@ function LeadDetailScreenContent() {
       {/* Back to the list, not `ScreenHeader`'s `/(tabs)` fallback. */}
       <ScreenHeader title="Lead" backTo="/owner/leads" />
 
-      <ScrollView
-        contentContainerStyle={{ padding: screenPadding, paddingBottom: scrollBottomPadding }}
-      >
+      {/* The "Log contact" note sits below the status controls, deep enough
+          down the page that the keyboard covers it and the buttons under it. */}
+      <KeyboardAvoider>
+        <ScrollView
+          contentContainerStyle={{ padding: screenPadding, paddingBottom: scrollBottomPadding }}
+          keyboardShouldPersistTaps="handled"
+        >
         <Card className="flex-row items-center">
           <Avatar uri={lead.userSnapshot.profileImage} name={lead.userSnapshot.name} size="lg" />
           <View className="ml-base flex-1">
@@ -287,7 +292,8 @@ function LeadDetailScreenContent() {
             ))}
           </Card>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

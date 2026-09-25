@@ -21,7 +21,6 @@ import {
   ErrorState,
   Image,
   Input,
-  KeyboardAvoider,
   PriceLabel,
   Screen,
   ScreenHeader,
@@ -742,65 +741,83 @@ function BookingSheet({
       title={isEnquiry ? 'Enquire about this unit' : 'Book this unit'}
       heightRatio={0.75}
     >
-      <KeyboardAvoider>
-        <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
-          <Text variant="footnote" tone="secondary" className="mb-base">
-            {isEnquiry
-              ? 'No payment needed. Our team will call you back about this unit — availability, pricing and next steps.'
-              : bookingAmount > 0
-                ? `This reserves the unit with a token payment of ₹${bookingAmount.toLocaleString('en-IN')}, which you submit on the next screen.`
-                : 'This reserves the unit with a token payment, submitted after the builder confirms your request.'}
-          </Text>
+      {/*
+        A bare, shrinkable ScrollView — no KeyboardAvoidingView.
 
-          <Input label="Full name" value={clientName} onChangeText={setClientName} />
-          <Input
-            label="Phone"
-            value={clientPhone}
-            onChangeText={setClientPhone}
-            keyboardType="phone-pad"
-            containerClassName="mt-base"
-          />
-          <Input
-            label="Email (optional)"
-            value={clientEmail}
-            onChangeText={setClientEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            containerClassName="mt-base"
-          />
-          <Input
-            label={isEnquiry ? 'What would you like to know? (optional)' : 'Notes (optional)'}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            containerClassName="mt-base"
-          />
+        This used to be `<KeyboardAvoider>` wrapping the scroll view, and that
+        is why the sheet opened empty: `KeyboardAvoider` is `flex-1`, the
+        sheet's body is auto-height, and a `flex-1` child of an auto-height
+        parent lays out at zero. The whole form — four fields and the confirm
+        button — was present, measured, and one point tall. See the note on the
+        body in `ui/Sheet`.
 
-          {refusal ? (
-            <View className="mt-base">
-              <Text variant="footnote" tone="danger">
-                {refusal.message}
-              </Text>
-              {refusal.actionLabel ? (
-                <Button
-                  label={refusal.actionLabel}
-                  variant="secondary"
-                  className="mt-sm"
-                  onPress={refusal.onAction}
-                />
-              ) : null}
-            </View>
-          ) : null}
+        It was also the wrong tool. A sheet is positioned by the modal root, so
+        avoidance has to move the SHEET; `Sheet` now reads the keyboard height
+        itself and lifts the surface, which fixes this form and every other
+        sheet that asks for text.
+      */}
+      <ScrollView
+        style={{ flexShrink: 1 }}
+        contentContainerStyle={{ padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text variant="footnote" tone="secondary" className="mb-base">
+          {isEnquiry
+            ? 'No payment needed. Our team will call you back about this unit — availability, pricing and next steps.'
+            : bookingAmount > 0
+              ? `This reserves the unit with a token payment of ₹${bookingAmount.toLocaleString('en-IN')}, which you submit on the next screen.`
+              : 'This reserves the unit with a token payment, submitted after the builder confirms your request.'}
+        </Text>
 
-          <Button
-            label={isEnquiry ? 'Send enquiry' : 'Confirm booking'}
-            className="mt-lg"
-            loading={isPending}
-            disabled={!clientName.trim() || !clientPhone.trim()}
-            onPress={() => void handleSubmit()}
-          />
-        </ScrollView>
-      </KeyboardAvoider>
+        <Input label="Full name" value={clientName} onChangeText={setClientName} />
+        <Input
+          label="Phone"
+          value={clientPhone}
+          onChangeText={setClientPhone}
+          keyboardType="phone-pad"
+          containerClassName="mt-base"
+        />
+        <Input
+          label="Email (optional)"
+          value={clientEmail}
+          onChangeText={setClientEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          containerClassName="mt-base"
+        />
+        <Input
+          label={isEnquiry ? 'What would you like to know? (optional)' : 'Notes (optional)'}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          containerClassName="mt-base"
+        />
+
+        {refusal ? (
+          <View className="mt-base">
+            <Text variant="footnote" tone="danger">
+              {refusal.message}
+            </Text>
+            {refusal.actionLabel ? (
+              <Button
+                label={refusal.actionLabel}
+                variant="secondary"
+                className="mt-sm"
+                onPress={refusal.onAction}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        <Button
+          label={isEnquiry ? 'Send enquiry' : 'Confirm booking'}
+          className="mt-lg"
+          loading={isPending}
+          disabled={!clientName.trim() || !clientPhone.trim()}
+          onPress={() => void handleSubmit()}
+        />
+      </ScrollView>
     </Sheet>
   );
 }

@@ -23,6 +23,7 @@ import {
   ErrorState,
   Image,
   Input,
+  KeyboardAvoider,
   Screen,
   ScreenHeader,
   Skeleton,
@@ -163,7 +164,14 @@ export default function BookingScreen() {
       ) : !booking ? (
         <EmptyState title="Booking not found" />
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+        /* The UTR field sits near the bottom of a long page, so without this
+           the keyboard covers the one thing the buyer came here to type. The
+           header stays outside it and does not move. */
+        <KeyboardAvoider>
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <Card>
             <View className="flex-row items-center justify-between">
               <Text variant="title3">
@@ -381,6 +389,7 @@ export default function BookingScreen() {
             </View>
           ) : null}
         </ScrollView>
+        </KeyboardAvoider>
       )}
     </Screen>
   );
