@@ -3,7 +3,7 @@ import { View, useWindowDimensions } from 'react-native';
 
 import { radius, spacing, useTheme } from '@/theme';
 import { PressableScale, Skeleton, Text } from '@/ui';
-import { citySearchTerm, type City } from '../cities';
+import { type City } from '../cities';
 import { useCityCounts } from '../useCityCounts';
 
 /**
@@ -72,7 +72,7 @@ export function CityGrid({ onSelect }: CityGridProps) {
           count={count}
           approximate={atCeiling}
           width={tileWidth}
-          onPress={() => onSelect(citySearchTerm(city))}
+          onPress={() => onSelect(city.id)}
         />
       ))}
     </View>

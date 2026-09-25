@@ -220,7 +220,7 @@ function SheetBody({
             }}
             style={[
               {
-                maxHeight: sheetHeight,
+                height: sheetHeight,
                 paddingBottom: insets.bottom,
                 shadowColor: '#000',
                 shadowOpacity: sheet.shadowOpacity,
@@ -242,10 +242,12 @@ function SheetBody({
               </View>
             ) : null}
 
-            {/* Shrinkable, not `flex-1`: the body takes its content's height
-                and gives way to the ceiling, which is what lets a consumer's
-                own ScrollView scroll instead of the sheet clipping it. */}
-            <View className="px-base pt-base" style={{ flexShrink: 1 }}>
+            {/* flex-1 so ScrollView children (BookingSheet, FilterSheet) get
+                allocated space. minHeight:0 is the RN flex trick that lets a
+                ScrollView inside a flex container measure correctly. The parent
+                Animated.View has an explicit height, so this fills the remaining
+                space after the drag handle and optional title. */}
+            <View className="px-base pt-base" style={{ flex: 1, minHeight: 0 }}>
               {children}
             </View>
           </Animated.View>

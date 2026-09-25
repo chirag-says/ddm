@@ -385,7 +385,7 @@ export default function HomeScreen() {
 
         <Reveal placeholder={<SectionPlaceholder height={300} />}>
           <Section title="Explore by city" subtitle="Every count below is live inventory">
-            <CityGrid onSelect={(search) => openSearch({ search })} />
+            <CityGrid onSelect={(cityId) => openSearch({ city: cityId })} />
           </Section>
           </Reveal>
         </Animated.ScrollView>
