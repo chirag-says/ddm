@@ -161,7 +161,6 @@ export const qk = {
   rewardsTransactions: () => ['rewards', 'transactions'] as const,
   rewardsReferralCode: () => ['rewards', 'referralCode'] as const,
   rewardsReferrals: () => ['rewards', 'referrals'] as const,
-  rewardsStore: () => ['rewards', 'store'] as const,
   /** Public and slow-moving: the explainer numbers, not the user's balance. */
   rewardsPolicy: () => ['rewards', 'policy'] as const,
 

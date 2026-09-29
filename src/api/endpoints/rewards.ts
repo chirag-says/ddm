@@ -11,6 +11,9 @@
  * the two routes a client is allowed to call are declared. The other four
  * (`/sso`, `/balance`, `/debit`, `/reverse`) are server-to-server, guarded by
  * the `X-Hubble-Secret` header, and are Hubble's to call, never ours.
+ *
+ * `/rewards/store` and `/rewards/redeem` were removed here on 2026-09-27: the
+ * backend deleted both routes on 2026-08-01 and nothing in the app called them.
  */
 
 import type {
@@ -18,10 +21,7 @@ import type {
   HubbleTokenResponse,
   ReferralCodeResponse,
   ReferralsResponse,
-  RedeemRewardRequest,
-  RedeemRewardResponse,
   RewardsPolicyResponse,
-  RewardsStoreResponse,
   TransactionsResponse,
   WalletResponse,
 } from '@/types/backend/rewards';
@@ -29,13 +29,6 @@ import type { PaginationParams } from '@/types/backend/common';
 import { defineEndpoint } from './_contract';
 
 export const rewardsEndpoints = {
-  store: defineEndpoint<void, RewardsStoreResponse>({
-    method: 'GET',
-    path: '/rewards/store',
-    auth: 'public',
-    envelope: 'keyed',
-  }),
-
   wallet: defineEndpoint<void, WalletResponse>({
     method: 'GET',
     path: '/rewards/wallet',
@@ -104,15 +97,5 @@ export const rewardsEndpoints = {
     auth: 'user',
     envelope: 'keyed',
     note: 'Also spreads a service result into the envelope. See `transactions`.',
-  }),
-
-  redeem: defineEndpoint<RedeemRewardRequest, RedeemRewardResponse>({
-    method: 'POST',
-    path: '/rewards/redeem',
-    auth: 'user',
-    envelope: 'keyed',
-    note:
-      'A business-rule failure returns HTTP 400 with success:false, not a 200 with an error ' +
-      'field. Treat 400 here as a normal outcome to display, not an exception.',
   }),
 } as const;

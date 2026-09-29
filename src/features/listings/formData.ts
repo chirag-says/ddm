@@ -64,6 +64,8 @@
  */
 
 import type { CategorizedPhoto, ListingFormValues } from './types';
+import { existingImagesPayload } from './existingImages';
+import { appendIfPresent, appendListingFields } from './listingFields';
 import { imagePart } from './imagePicker';
 
 /**
@@ -95,129 +97,6 @@ function buildCategorizedImageMap(photos: readonly CategorizedPhoto[]): {
   return { orderedUris, categoryMap };
 }
 
-function appendIfPresent(form: FormData, key: string, value: string | undefined) {
-  if (value !== undefined && value.trim() !== '') form.append(key, value.trim());
-}
-
-function num(value: string): number | undefined {
-  const n = Number(value);
-  return value.trim() !== '' && Number.isFinite(n) ? n : undefined;
-}
-
-function commonFields(form: FormData, values: ListingFormValues) {
-  form.append('title', values.title.trim());
-  appendIfPresent(form, 'description', values.description);
-  form.append('categoryName', values.categoryName);
-  form.append('propertyTypeName', values.propertyTypeName);
-  form.append('listingType', values.listingType);
-  form.append('negotiable', String(values.negotiable));
-
-  const price = num(values.price);
-  if (price !== undefined) form.append('price', String(price));
-  appendIfPresent(form, 'deposit', values.deposit);
-  appendIfPresent(form, 'maintenance', values.maintenance);
-  const securityDeposit = num(values.securityDeposit);
-  if (securityDeposit !== undefined) form.append('securityDeposit', String(securityDeposit));
-
-  /**
-   * Nested `area.*`, which is where the schema actually keeps these. The FLAT
-   * `builtUpArea`/`carpetArea`/`superBuiltUpArea`/`plotArea` whitelist entries
-   * are a trap — see the module doc; Mongoose drops them silently.
-   *
-   * `pricePerSqft` is DERIVED here rather than asked for, the way the website
-   * derives it. Asking an owner for a number that is arithmetic over two
-   * numbers they already gave invites a contradiction between the three.
-   * Computed from super-built-up when present, since that is the area Indian
-   * listings conventionally quote a rate against, else built-up, else total.
-   */
-  const area: Record<string, number> = {};
-  const totalSqft = num(values.totalSqft);
-  const carpetSqft = num(values.carpetSqft);
-  const builtUpSqft = num(values.builtUpSqft);
-  const superBuiltUpSqft = num(values.superBuiltUpSqft);
-  const plotSqft = num(values.plotSqft);
-  if (totalSqft !== undefined) area.totalSqft = totalSqft;
-  if (carpetSqft !== undefined) area.carpetSqft = carpetSqft;
-  if (builtUpSqft !== undefined) area.builtUpSqft = builtUpSqft;
-  if (superBuiltUpSqft !== undefined) area.superBuiltUpSqft = superBuiltUpSqft;
-  if (plotSqft !== undefined) area.plotSqft = plotSqft;
-
-  const rateArea = superBuiltUpSqft ?? builtUpSqft ?? totalSqft;
-  if (price !== undefined && rateArea !== undefined && rateArea > 0) {
-    area.pricePerSqft = Math.round(price / rateArea);
-  }
-
-  if (Object.keys(area).length > 0) form.append('area', JSON.stringify(area));
-
-  appendIfPresent(form, 'availableFrom', values.availableFrom);
-
-  if (values.amenities.length > 0) form.append('amenities', JSON.stringify(values.amenities));
-
-  if (values.parkingCovered || values.parkingOpen) {
-    form.append(
-      'parking',
-      JSON.stringify({ covered: values.parkingCovered || '0', open: values.parkingOpen || '0' })
-    );
-  }
-
-  /**
-   * `legal` is sent whole or not at all — it is one nested object, so sending
-   * only `reraId` (as this did before 2026-08-13) would leave the three
-   * compliance booleans unsettable. They are only included when true: a
-   * blanket `false` on every listing asserts "no fire NOC" where the owner
-   * simply did not answer.
-   */
-  const legal: Record<string, string | boolean> = {};
-  if (values.reraId.trim()) legal.reraId = values.reraId.trim();
-  if (values.occupancyCertificate) legal.occupancyCertificate = true;
-  if (values.tradeLicense) legal.tradeLicense = true;
-  if (values.fireNoc) legal.fireNoc = true;
-  if (Object.keys(legal).length > 0) form.append('legal', JSON.stringify(legal));
-
-  if (values.categoryName === 'Residential') {
-    appendIfPresent(form, 'bhk', values.bhk);
-    const bedrooms = num(values.bedrooms);
-    if (bedrooms !== undefined) form.append('bedrooms', String(bedrooms));
-    const bathrooms = num(values.bathrooms);
-    if (bathrooms !== undefined) form.append('bathrooms', String(bathrooms));
-    const balconies = num(values.balconies);
-    if (balconies !== undefined) form.append('balconies', String(balconies));
-    appendIfPresent(form, 'furnishing', values.furnishing);
-    appendIfPresent(form, 'totalFloors', values.totalFloors);
-    appendIfPresent(form, 'facing', values.facing);
-    appendIfPresent(form, 'constructionStatus', values.constructionStatus);
-    form.append(
-      'extras',
-      JSON.stringify({
-        servantRoom: values.servantRoom,
-        poojaRoom: values.poojaRoom,
-        studyRoom: values.studyRoom,
-        storeRoom: values.storeRoom,
-      })
-    );
-  } else {
-    const washrooms = num(values.washrooms);
-    if (washrooms !== undefined) form.append('washrooms', String(washrooms));
-    appendIfPresent(form, 'commercialSubType', values.commercialSubType);
-    appendIfPresent(form, 'floorHeight', values.floorHeight);
-    appendIfPresent(form, 'powerLoad', values.powerLoad);
-
-    /*
-      The per-type configuration, flattened.
-
-      The website spreads `COMMERCIAL_CONFIGS[type].fields` flat into `features`
-      and sends only the truthy ones, so an Office Space listing carries
-      `workstations` and a Warehouse carries `loadingDocks` without either
-      needing a column of its own. Empty values are omitted rather than sent as
-      0, because "not stated" and "zero loading docks" are different claims.
-    */
-    for (const [key, raw] of Object.entries(values.commercialConfig)) {
-      const value = num(raw);
-      if (value !== undefined) form.append(key, String(value));
-    }
-  }
-}
-
 /**
  * A coordinate field as a number, or undefined.
  *
@@ -238,7 +117,7 @@ export function buildAddFormData(
   newPhotos: readonly CategorizedPhoto[]
 ): FormData {
   const form = new FormData();
-  commonFields(form, values);
+  appendListingFields(form, values);
 
   form.append(
     'address',
@@ -290,23 +169,14 @@ export function buildEditFormData(
   existingPhotos: readonly CategorizedPhoto[]
 ): FormData {
   const form = new FormData();
-  commonFields(form, values);
+  appendListingFields(form, values);
 
   appendIfPresent(form, 'city', values.city);
   appendIfPresent(form, 'locality', values.locality);
   appendIfPresent(form, 'landmark', values.landmark);
 
-  // `Commercial` is the special case and everything else is residential-shaped
-  // — the same rule `photoCategoriesFor` applies, so the bucket a photo is
-  // filed under always matches the category list it was labelled from. Keyed
-  // the other way round these two disagreed for `Land & Plots`, filing photos
-  // labelled with residential keys into the commercial bucket.
-  const bucket = values.categoryName === 'Commercial' ? 'commercial' : 'residential';
-  const existingByCategory: Record<string, string[]> = {};
-  for (const photo of existingPhotos) {
-    (existingByCategory[photo.category] ??= []).push(photo.uri);
-  }
-  form.append('existingCategorizedImages', JSON.stringify({ [bucket]: existingByCategory }));
+  // Flat `{ kitchen: [...] }`; the server picks the bucket. See `existingImagesPayload`.
+  form.append('existingCategorizedImages', JSON.stringify(existingImagesPayload(existingPhotos)));
 
   if (newPhotos.length > 0) {
     const categoryMap = newPhotos.map((photo, index) => ({ index, category: photo.category }));

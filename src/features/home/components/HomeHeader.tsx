@@ -18,8 +18,6 @@ import {
   HEADER_ROW_PX,
   HEADER_TOP_PX,
   HERO_BOTTOM_PX,
-  HERO_HEADER_GLASS,
-  HERO_HEADER_INK,
   HERO_SEARCH_PILL_PX,
   HERO_TEXT,
   useHeroScheme,
@@ -34,9 +32,9 @@ import { HomeSearchField } from './HomeSearchField';
  * `heroTheme.ts` for why. Measured from the mockup:
  *
  *   wordmark        x 40, y 95 (25 below the status bar), 258 wide
- *   city chip       right-aligned group, 48 tall, pale glass, dark text
- *   bell            60 circle, pale glass, dark glyph
- *   avatar          60 circle, white, dark glyph; 30 from the right edge
+ *   city chip       right-aligned group, 48 tall, scheme glass (useHeroScheme)
+ *   bell            60 circle, scheme glass (useHeroScheme)
+ *   avatar          60 circle, scheme fill (useHeroScheme); 30 from the right edge
  *   controls        centred on the wordmark's line, 14 apart
  *
  * The wordmark is the website's `dealdirect_logo.png`, drawn as it is: no
@@ -173,7 +171,7 @@ export function HomeHeader({
     borderRadius: mockPx(30),
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    backgroundColor: HERO_HEADER_GLASS,
+    backgroundColor: hero.headerGlass,
   };
 
   return (
@@ -269,18 +267,18 @@ export function HomeHeader({
                 maxWidth: mockPx(210),
                 paddingHorizontal: mockPx(16),
                 borderRadius: mockPx(24),
-                backgroundColor: HERO_HEADER_GLASS,
+                backgroundColor: hero.headerGlass,
               }}
             >
-              <Ionicons name="location-outline" size={mockPx(22)} color={HERO_HEADER_INK} />
+              <Ionicons name="location-outline" size={mockPx(22)} color={hero.headerInk} />
               <Text
                 variant="bodyEmphasis"
                 numberOfLines={1}
-                style={{ color: HERO_HEADER_INK, fontSize: mockPx(21), lineHeight: mockPx(26), flexShrink: 1 }}
+                style={{ color: hero.headerInk, fontSize: mockPx(21), lineHeight: mockPx(26), flexShrink: 1 }}
               >
                 {city ? city.label : 'All cities'}
               </Text>
-              <Ionicons name="chevron-down" size={mockPx(18)} color={HERO_HEADER_INK} />
+              <Ionicons name="chevron-down" size={mockPx(18)} color={hero.headerInk} />
             </PressableScale>
           )}
 
@@ -292,7 +290,7 @@ export function HomeHeader({
             activeScale={0.94}
             style={control}
           >
-            <Ionicons name="notifications-outline" size={mockPx(32)} color={HERO_HEADER_INK} />
+            <Ionicons name="notifications-outline" size={mockPx(32)} color={hero.headerInk} />
             {hasUnread ? (
               <View
                 style={{
@@ -314,12 +312,12 @@ export function HomeHeader({
             hitSlop={gesture.hitSlop}
             onPress={onOpenProfile}
             activeScale={0.94}
-            style={{ ...control, backgroundColor: HERO_TEXT }}
+            style={{ ...control, backgroundColor: hero.avatarFill }}
           >
             {name ? (
               <Avatar uri={avatarUri} name={name} size="sm" />
             ) : (
-              <Ionicons name="person-outline" size={mockPx(32)} color={HERO_HEADER_INK} />
+              <Ionicons name="person-outline" size={mockPx(32)} color={hero.headerInk} />
             )}
           </PressableScale>
         </View>

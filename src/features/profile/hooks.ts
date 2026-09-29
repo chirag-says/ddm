@@ -19,7 +19,8 @@ import type { UserAddress, UserGender, UserSessionSummary } from '@/types/backen
 
 export interface UpdateProfileValues {
   name: string;
-  phone?: string;
+  /** No `phone`: the backend refuses a changed number here
+   *  (PHONE_CHANGE_REQUIRES_OTP). It changes only through `PhoneOtpSheet`. */
   alternatePhone?: string;
   address?: UserAddress;
   /** `YYYY-MM-DD`. `userController.js:943` only sets the field when truthy, so
@@ -37,7 +38,6 @@ export interface UpdateProfileValues {
 function buildProfileFormData(values: UpdateProfileValues): FormData {
   const form = new FormData();
   form.append('name', values.name);
-  if (values.phone) form.append('phone', values.phone);
   if (values.alternatePhone !== undefined) form.append('alternatePhone', values.alternatePhone);
   if (values.address !== undefined) form.append('address', JSON.stringify(values.address));
   if (values.dateOfBirth) form.append('dateOfBirth', values.dateOfBirth);

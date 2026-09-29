@@ -53,20 +53,18 @@ const DESCRIPTION_MAX = 5000;
  * Every listing used to be asked for all five: a flat for its plot area, a
  * plot for its carpet area. An owner facing a question that cannot apply to
  * their property either guesses or loses confidence in the form, and both
- * pollute the corpus. Land types get the plot figure only; houses on their
- * own land get plot plus the built figures; everything else gets the built
- * figures. Total area stays for commercial, where it is the figure quoted.
+ * pollute the corpus. Houses on their own land get plot plus the built
+ * figures; everything else gets the built figures. Total area stays for
+ * commercial, where it is the figure quoted. (Land itself is not listed.)
  */
 function areaFieldsFor(categoryName: string, propertyTypeName: string) {
-  const type = propertyTypeName.toLowerCase();
-  const land = /plot|land/.test(type);
-  const onOwnLand = /villa|independent|farm|row house|bungalow/.test(type);
+  const onOwnLand = /villa|independent|farm|row house|bungalow/.test(propertyTypeName.toLowerCase());
   return {
-    plot: land || onOwnLand,
-    carpet: !land,
-    builtUp: !land,
-    superBuiltUp: !land && categoryName === 'Residential',
-    total: !land && categoryName !== 'Residential',
+    plot: onOwnLand,
+    carpet: true,
+    builtUp: true,
+    superBuiltUp: categoryName === 'Residential',
+    total: categoryName !== 'Residential',
   };
 }
 
@@ -1036,11 +1034,11 @@ export function ListingForm({
               <ReviewRow
                 label="Area"
                 value={[
-                  values.carpetSqft && `${values.carpetSqft} carpet`,
-                  values.builtUpSqft && `${values.builtUpSqft} built-up`,
-                  values.superBuiltUpSqft && `${values.superBuiltUpSqft} super built-up`,
-                  values.totalSqft && `${values.totalSqft} total`,
-                  values.plotSqft && `${values.plotSqft} plot`,
+                  Number(values.carpetSqft) > 0 && `${values.carpetSqft} carpet`,
+                  Number(values.builtUpSqft) > 0 && `${values.builtUpSqft} built-up`,
+                  Number(values.superBuiltUpSqft) > 0 && `${values.superBuiltUpSqft} super built-up`,
+                  Number(values.totalSqft) > 0 && `${values.totalSqft} total`,
+                  Number(values.plotSqft) > 0 && `${values.plotSqft} plot`,
                 ]
                   .filter(Boolean)
                   .join(', ')}
@@ -1049,7 +1047,12 @@ export function ListingForm({
               {values.categoryName === 'Residential' ? (
                 <ReviewRow
                   label="Home"
-                  value={[values.bhkType, values.furnishing, values.propertyAge && `${values.propertyAge} old`]
+                  value={[
+                    values.bhkType,
+                    values.furnishing,
+                    // "New", not "New old"; the ranges read as ages ("1-5 Years old").
+                    values.propertyAge === 'New' ? 'New' : values.propertyAge && `${values.propertyAge} old`,
+                  ]
                     .filter(Boolean)
                     .join(' · ')}
                   onEdit={() => goTo(4)}

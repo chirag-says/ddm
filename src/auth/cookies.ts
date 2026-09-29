@@ -56,9 +56,21 @@ interface CookieJar {
   clearAll(): Promise<unknown>;
 }
 
+/**
+ * The package assigns `module.exports = { get, set, ... }` and has no
+ * `default`. Reading `.default` off the raw `require` returned `undefined`
+ * without throwing, so the jar was treated as absent in every build: nothing
+ * was ever mirrored and every cold start came up signed out. Take `default`
+ * only if a future version adds one, otherwise the exports object itself.
+ */
 const cookieJar = optionalNativeModule(
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  () => (require('@react-native-cookies/cookies') as { default: CookieJar }).default,
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const loaded = require('@react-native-cookies/cookies') as CookieJar & { default?: CookieJar };
+    const jar = loaded.default ?? loaded;
+    if (typeof jar.get !== 'function') throw new Error('cookie jar has no get()');
+    return jar;
+  },
   '@react-native-cookies/cookies',
   'Sign-in works for this run, but a cold start will require logging in again.'
 );

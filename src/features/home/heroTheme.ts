@@ -78,15 +78,35 @@ const HERO_IMAGE = {
 } as const;
 
 /**
- * The hero's photograph and slab colour for the active colour scheme. One
- * hook so the hero (which draws both) and the header (which fills with the
- * slab colour once scrolled) can never pick different ones.
+ * The hero's photograph, slab colour and header-control colours for the
+ * active colour scheme. One hook so the hero (which draws the photograph and
+ * slab) and the header (which fills with the slab once scrolled and draws the
+ * city chip and bell) can never pick different ones.
  */
-export function useHeroScheme(): { image: number; slab: string } {
+export function useHeroScheme(): {
+  image: number;
+  slab: string;
+  headerGlass: string;
+  headerInk: string;
+  /** The avatar circle's fill behind its fallback glyph (or a photo). */
+  avatarFill: string;
+} {
   const { scheme } = useTheme();
   return scheme === 'light'
-    ? { image: HERO_IMAGE.light, slab: HERO_BG_LIGHT }
-    : { image: HERO_IMAGE.dark, slab: HERO_BG };
+    ? {
+        image: HERO_IMAGE.light,
+        slab: HERO_BG_LIGHT,
+        headerGlass: HERO_HEADER_GLASS,
+        headerInk: HERO_HEADER_INK,
+        avatarFill: HERO_TEXT,
+      }
+    : {
+        image: HERO_IMAGE.dark,
+        slab: HERO_BG,
+        headerGlass: HERO_HEADER_GLASS_DARK,
+        headerInk: HERO_HEADER_INK_DARK,
+        avatarFill: HERO_HEADER_GLASS_DARK,
+      };
 }
 
 /** Dark "glass" pills on the photograph: Rent, Projects. */
@@ -94,11 +114,16 @@ export const HERO_GLASS = 'rgba(255, 255, 255, 0.14)';
 export const HERO_GLASS_BORDER = 'rgba(255, 255, 255, 0.12)';
 
 /**
- * Light glass in the header: the city chip and the bell sit on the sky and
- * read as pale grey with DARK text and glyphs. The avatar is solid white.
+ * Glass for the header's city chip and bell, per scheme; read them through
+ * `useHeroScheme`. Light: pale glass with dark text and glyphs. Dark: the
+ * dark slab's colour as glass with light text, so the controls match the
+ * system theme instead of staying white at night. The avatar circle is solid
+ * white in the light scheme and takes the dark glass in the dark one.
  */
 export const HERO_HEADER_GLASS = 'rgba(255, 255, 255, 0.78)';
 export const HERO_HEADER_INK = '#111827';
+export const HERO_HEADER_GLASS_DARK = 'rgba(9, 12, 17, 0.72)';
+export const HERO_HEADER_INK_DARK = '#F3F4F6';
 
 export const HERO_TEXT = '#FFFFFF';
 export const HERO_TEXT_MUTED = '#C4C8D0';
