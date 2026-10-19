@@ -22,7 +22,7 @@ export const whyUsPage: ContentPage = {
             {
               icon: 'people-outline',
               title: 'Direct, No-Broker Model',
-              text: 'Connect directly with verified owners and genuine tenants/buyers. Save on hefty brokerage and have full control over your conversations and decisions.',
+              text: 'Connect directly with owners, tenants and buyers. Save on hefty brokerage and have full control over your conversations and decisions.',
             },
             {
               icon: 'search-outline',
@@ -82,7 +82,7 @@ export const whyUsPage: ContentPage = {
             {
               title: '3. Lead Packs (No-Broker)',
               meta: 'Who pays: Owners',
-              text: 'Owners can purchase verified, intent-based buyer or tenant contacts, with clear tracking from first enquiry to closure.',
+              text: 'Owners can purchase intent-based buyer or tenant contacts, with clear tracking from first enquiry to closure.',
               footnote: 'Pricing: Rent ₹20–₹50/lead • Sale ₹100–₹200/lead',
             },
             {

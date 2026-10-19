@@ -82,7 +82,7 @@ export const faqPage: ContentPage = {
               id: 'how-to-earn',
               question: 'How do I earn rewards on Deal Direct?',
               answer:
-                'Four ways: post a verified property, send a genuine enquiry on a listing, close a deal through the platform, or refer someone who signs up.',
+                'Four ways: post a property, send a genuine enquiry on a listing, close a deal through the platform, or refer someone who signs up.',
             },
             {
               id: 'how-to-refer',

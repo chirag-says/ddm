@@ -11,7 +11,7 @@ export const aboutPage: ContentPage = {
   eyebrow: "India's Leading PropTech Platform",
   title: 'About Deal Direct',
   intro:
-    '**DealDirect**, a venture by **Agrawal Business Network LLP**, is revolutionizing the way India buys, sells, and rents properties. By connecting you directly with verified property owners, we eliminate middlemen and save you lakhs in brokerage fees — making real estate transactions **transparent, simple, and affordable**.',
+    '**DealDirect**, a venture by **Agrawal Business Network LLP**, is revolutionizing the way India buys, sells, and rents properties. By connecting you directly with property owners, we eliminate middlemen and save you lakhs in brokerage fees — making real estate transactions **transparent, simple, and affordable**.',
   webPath: '/about',
   sections: [
     {
@@ -23,7 +23,6 @@ export const aboutPage: ContentPage = {
             { value: '₹50Cr+', label: 'Brokerage saved' },
             { value: '10,000+', label: 'Happy families' },
             { value: '12+', label: 'Cities covered' },
-            { value: '100%', label: 'Verified listings' },
           ],
         },
       ],
@@ -64,8 +63,8 @@ export const aboutPage: ContentPage = {
           items: [
             {
               icon: 'shield-checkmark-outline',
-              title: '100% Verified Owners',
-              text: 'Every property listing is verified. We ensure you deal only with genuine owners — no brokers, no fraud.',
+              title: 'Verified Mobile Numbers',
+              text: 'Owners must confirm their mobile number with a one-time code before they can post a listing.',
             },
             {
               icon: 'hand-left-outline',
@@ -103,7 +102,7 @@ export const aboutPage: ContentPage = {
               icon: 'shield-outline',
               title: 'The Power of "One"',
               meta: 'Anti-spam policy',
-              text: 'To ensure every listing is **high-quality and genuine**, we enforce a **Strict 1-Post Per User** rule.\n\n**Why?** This prevents brokers from flooding the site with duplicate listings.\n\n**The Result:** Every property you see is from the actual owner or primary decision-maker. No clutter, just real options.',
+              text: 'To keep listings **high-quality**, we enforce a **Strict 1-Post Per User** rule.\n\n**Why?** This prevents brokers from flooding the site with duplicate listings.\n\n**The Result:** Fewer duplicate listings and less clutter.',
             },
             {
               icon: 'cash-outline',
@@ -141,7 +140,6 @@ export const aboutPage: ContentPage = {
           items: [
             'Transparent Pricing',
             'No Hidden Fees',
-            'Verified Listings',
             'Direct Connections',
             'Secure Platform',
           ],

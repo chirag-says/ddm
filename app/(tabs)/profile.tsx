@@ -127,9 +127,12 @@ export default function ProfileScreen() {
               {user.email}
             </Text>
             <View className="mt-sm flex-row items-center">
+              {/* `isVerified` used to drive this, and it proves nothing (see its
+                  note in types/backend/user). The phone OTP is the one check
+                  a buyer account has actually passed. */}
               <Badge
-                label={isOwner ? 'Owner' : user.isVerified ? 'Verified' : 'Unverified'}
-                tone={isOwner ? 'accent' : user.isVerified ? 'success' : 'warning'}
+                label={isOwner ? 'Owner' : user.phoneVerified ? 'Phone verified' : 'Phone not verified'}
+                tone={isOwner ? 'accent' : user.phoneVerified ? 'success' : 'warning'}
               />
               {user.phone ? (
                 <Text variant="caption" tone="muted" className="ml-sm">
