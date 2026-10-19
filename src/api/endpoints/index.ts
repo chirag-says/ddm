@@ -23,10 +23,5 @@ export { savedSearchesEndpoints } from './savedSearches';
 export { shortlistEndpoints } from './shortlist';
 export { localitiesEndpoints } from './localities';
 export { rewardsEndpoints } from './rewards';
-export {
-  projectsEndpoints,
-  unitTypesEndpoints,
-  campaignsEndpoints,
-  bookingsEndpoints,
-} from './projects';
+export { projectsEndpoints, unitTypesEndpoints, bookingsEndpoints } from './projects';
 export { taxonomyEndpoints, blogsEndpoints, contactEndpoints, eventsEndpoints } from './misc';

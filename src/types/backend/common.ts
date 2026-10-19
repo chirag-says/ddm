@@ -102,18 +102,15 @@ export type BackendErrorCode =
   | 'OTP_SEND_LIMIT'
   | 'SMS_NOT_CONFIGURED'
   | 'SMS_SEND_FAILED'
-  // Bookings and inventory (controllers/bookingController.js). Every one of
+  // Builder-unit enquiries (controllers/bookingController.js). Every one of
   // these is a refusal the buyer can act on, so each needs its own copy and its
   // own next step rather than a generic error line.
   | 'NO_INVENTORY'
-  | 'BOOKING_NOT_CONFIGURED'
   | 'DUPLICATE_ENQUIRY'
   | 'NOT_CANCELLABLE'
   // Properties (controllers/propertyController.js)
   | 'LEGACY_BUILDER_LISTING'
   | 'DELETE_BLOCKED_DEPENDENTS'
-  // Group buy (controllers/campaignController.js)
-  | 'CAMPAIGN_MEMBER_PAYMENT_PROTECTED'
   // Deals (controllers/dealController.js). Each is a refusal the user can act
   // on, so each maps to its own line of copy in `features/deals`.
   | 'NOT_A_PARTY'

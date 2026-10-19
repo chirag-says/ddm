@@ -7,9 +7,10 @@
  * does not exist: the spendable balance is `availablePoints`, and reading the
  * wrong key showed every user zero points (defect F1).
  *
- * Redemption is deliberately absent. The in-house store/redeem endpoints are
- * deleted backend-side and the website's only redemption path is the Hubble
- * SDK iframe; mobile redemption is its own workstream (HANDOFF §9.1 D3).
+ * Redemption is not in this file. It happens in the Hubble store
+ * (`app/rewards/redeem.tsx`), whose session is fetched by `useHubbleSession`
+ * in `hubble.ts`. The in-house store/redeem endpoints are deleted
+ * backend-side, so Hubble is the only redemption path.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

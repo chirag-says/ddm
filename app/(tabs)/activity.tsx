@@ -55,8 +55,8 @@ import {
  * It used to hold one list and one set of alerts, which described a storage
  * bucket rather than a person's situation. Somebody looking for a home has
  * four things going at once: the flats they are turning over, the owners they
- * have written to, the searches they are watching, and the units they have put
- * money or a name against. Those were spread across a tab, a profile link and a
+ * have written to, the searches they are watching, and the builder units they
+ * have enquired about. Those were spread across a tab, a profile link and a
  * deep-linked screen, so nowhere in the app answered "where am I up to".
  *
  * Four segments now, in the order the user moves through them:
@@ -64,7 +64,7 @@ import {
  *   Shortlist   considering       device-local, free, unlimited
  *   Deals       in motion         server, both roles, enquiries capped at 5
  *   Searches    watching          server, alerting
- *   Bookings    committed         server, money or a callback
+ *   Enquiries   waiting           server, builder units, a callback
  *
  * ---------------------------------------------------------------------------
  * SHORTLIST AND DEALS ARE TWO LISTS, AND THE SPLIT IS THE WHOLE POINT
@@ -386,12 +386,12 @@ function ShortlistToolbar({
 }
 
 /**
- * Bookings and enquiries against builder units.
+ * Enquiries about builder units.
  *
  * The same rows `/projects/bookings` renders, from the same hook — this
  * segment is where they belong, and that screen stays reachable because it is
  * deep-linked from notifications. `BookingRow` is shared rather than copied so
- * the enquiry-versus-booking distinction has one implementation.
+ * the status wording has one implementation.
  */
 function BookingsList() {
   const router = useRouter();
@@ -414,19 +414,19 @@ function BookingsList() {
     return (
       <SignInPrompt
         icon="calendar-outline"
-        title="Your bookings"
-        description="Units you have booked or enquired about appear here."
+        title="Your enquiries"
+        description="Builder units you have enquired about appear here."
       />
     );
   }
 
-  if (error) return <ErrorState title="Could not load your bookings" onRetry={refresh} />;
+  if (error) return <ErrorState title="Could not load your enquiries" onRetry={refresh} />;
 
   if (bookings.length === 0) {
     return (
       <EmptyState
-        title="No bookings yet"
-        description="Book a unit or send an enquiry from any project to see it here."
+        title="No enquiries yet"
+        description="Enquire about a unit in any builder project to see it here."
         actionLabel="Browse projects"
         onAction={() => router.push('/projects')}
       />
@@ -468,7 +468,10 @@ const SEGMENTS = [
   // narrower than the row. See `features/deals`.
   { label: 'Deals', value: 'enquiries' as const },
   { label: 'Searches', value: 'searches' as const },
-  { label: 'Bookings', value: 'bookings' as const },
+  // Labelled for what it holds, builder-unit enquiries, since booking stopped
+  // taking money (2026-10-19). The value stays `bookings` so existing links
+  // keep landing here.
+  { label: 'Enquiries', value: 'bookings' as const },
 ];
 
 /**

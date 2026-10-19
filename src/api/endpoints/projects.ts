@@ -1,6 +1,8 @@
 /**
- * Builder-project vertical. Mounted at `/api/projects`, `/api/unit-types`,
- * `/api/campaigns` and `/api/bookings`.
+ * Builder-project vertical. Mounted at `/api/projects`, `/api/unit-types` and
+ * `/api/bookings`. The `/api/campaigns` (group buy) routes and the booking
+ * payment routes were removed on 2026-10-19: DealDirect takes no money from
+ * users, and `/bookings` now records enquiries only.
  *
  * Public GET routes use `attachAdminIfPresent`, which widens visibility to
  * inactive records for an admin session. The mobile app never holds one, so it
@@ -18,20 +20,12 @@ import type {
   CancelBookingResponse,
   CreateBookingRequest,
   CreateBookingResponse,
-  GroupBuyCampaign,
-  JoinCampaignResponse,
-  PaymentConfigResponse,
   Project,
   ProjectBooking,
   ProjectListParams,
   UnitType,
 } from '@/types/backend/project';
-import type {
-  DataEnvelope,
-  ObjectId,
-  OkEnvelope,
-  PaginatedDataEnvelope,
-} from '@/types/backend/common';
+import type { DataEnvelope, ObjectId, PaginatedDataEnvelope } from '@/types/backend/common';
 import { defineEndpoint } from './_contract';
 
 export const projectsEndpoints = {
@@ -78,64 +72,6 @@ export const unitTypesEndpoints = {
   }),
 } as const;
 
-export const campaignsEndpoints = {
-  byUnitType: defineEndpoint<
-    { status?: string },
-    DataEnvelope<GroupBuyCampaign[]>,
-    { unitTypeId: ObjectId }
-  >({
-    method: 'GET',
-    path: ({ unitTypeId }) => `/campaigns/unit-type/${unitTypeId}`,
-    auth: 'public',
-    envelope: 'data',
-  }),
-
-  byProject: defineEndpoint<
-    { status?: string },
-    DataEnvelope<GroupBuyCampaign[]>,
-    { projectId: ObjectId }
-  >({
-    method: 'GET',
-    path: ({ projectId }) => `/campaigns/project/${projectId}`,
-    auth: 'public',
-    envelope: 'data',
-  }),
-
-  detail: defineEndpoint<void, DataEnvelope<GroupBuyCampaign>, { id: ObjectId }>({
-    method: 'GET',
-    path: ({ id }) => `/campaigns/${id}`,
-    auth: 'public',
-    envelope: 'data',
-  }),
-
-  join: defineEndpoint<void, JoinCampaignResponse, { id: ObjectId }>({
-    method: 'POST',
-    path: ({ id }) => `/campaigns/${id}/join`,
-    auth: 'user',
-    envelope: 'data',
-    rateLimit: 'groupBuy',
-    note: 'Ten per 15 minutes per IP, shared with exit. Returns 201 with the new memberId.',
-  }),
-
-  exit: defineEndpoint<void, OkEnvelope, { id: ObjectId }>({
-    method: 'POST',
-    path: ({ id }) => `/campaigns/${id}/exit`,
-    auth: 'user',
-    envelope: 'ok',
-    rateLimit: 'groupBuy',
-  }),
-
-  uploadPaymentProof: defineEndpoint<FormData, OkEnvelope, { id: ObjectId }>({
-    method: 'POST',
-    path: ({ id }) => `/campaigns/${id}/payment-proof`,
-    auth: 'user',
-    envelope: 'ok',
-    note:
-      'multipart/form-data, single file field `paymentProof`. Returns only a message; the ' +
-      'updated member record is not echoed back, so refetch if the UI needs it.',
-  }),
-} as const;
-
 export const bookingsEndpoints = {
   create: defineEndpoint<CreateBookingRequest, CreateBookingResponse>({
     method: 'POST',
@@ -143,10 +79,9 @@ export const bookingsEndpoints = {
     auth: 'user',
     envelope: 'data',
     note:
-      'Requires login despite reading like a public lead form. Required fields are projectId, ' +
-      'unitTypeId, clientName and clientPhone. Send `intent: "enquiry"` to ask without paying — ' +
-      'that is the ONLY way to reach a unit type with no bookingAmount configured, which is ' +
-      'three of the eight real ones. Refuses with NO_INVENTORY, BOOKING_NOT_CONFIGURED or ' +
+      'Records an ENQUIRY, always; any `intent` in the body is ignored and nothing is ' +
+      'charged. Requires login despite reading like a public lead form. Required fields are ' +
+      'projectId, unitTypeId, clientName and clientPhone. Refuses with 400 NO_INVENTORY or ' +
       '409 DUPLICATE_ENQUIRY; each is actionable and deserves its own message.',
   }),
 
@@ -155,18 +90,7 @@ export const bookingsEndpoints = {
     path: ({ id }) => `/bookings/${id}/cancel`,
     auth: 'user',
     envelope: 'data',
-    note:
-      'Buyer self-withdrawal, allowed only from `enquiry` or `payment_submitted` ' +
-      '(400 NOT_CANCELLABLE otherwise). NOT a refund: payment evidence is left exactly as ' +
-      'submitted and `data.refundMayBeDue` says whether a human needs to arrange one.',
-  }),
-
-  submitPayment: defineEndpoint<FormData, OkEnvelope, { id: ObjectId }>({
-    method: 'POST',
-    path: ({ id }) => `/bookings/${id}/payment`,
-    auth: 'user',
-    envelope: 'keyed',
-    note: 'multipart/form-data, single file field `screenshot`, plus the UTR fields.',
+    note: 'Buyer withdraws an enquiry. Allowed only from `enquiry` (400 NOT_CANCELLABLE otherwise).',
   }),
 
   mine: defineEndpoint<void, DataEnvelope<ProjectBooking[]>>({
@@ -174,13 +98,5 @@ export const bookingsEndpoints = {
     path: '/bookings/my',
     auth: 'user',
     envelope: 'data',
-  }),
-
-  paymentConfig: defineEndpoint<void, PaymentConfigResponse>({
-    method: 'GET',
-    path: '/bookings/payment-config',
-    auth: 'user',
-    envelope: 'data',
-    note: 'Returns the UPI id and QR image used for the manual token payment.',
   }),
 } as const;

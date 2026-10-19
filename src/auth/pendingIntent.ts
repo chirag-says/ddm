@@ -42,8 +42,14 @@ import { PREF_KEYS, prefsStorage } from '@/storage';
 export type PendingIntent =
   /** Open a listing and raise its enquiry confirmation. */
   | { kind: 'enquire'; propertyId: string }
-  /** Open a unit and raise its booking or enquiry sheet. */
-  | { kind: 'unit'; unitTypeId: string; intent: 'booking' | 'enquiry' }
+  /**
+   * Open a builder unit and raise its enquiry sheet. There was a second,
+   * paid "booking" variant; it went when booking stopped taking money
+   * (2026-10-19). An intent of that shape still on disk from an older build
+   * resumes the same way, to the enquiry sheet, which sends nothing until the
+   * buyer presses Send.
+   */
+  | { kind: 'unit'; unitTypeId: string }
   /** Resume a reward claim reached from a notification. */
   | { kind: 'claimReward'; verificationId: string }
   /** Return to a screen with nothing to re-fire. */
@@ -145,7 +151,7 @@ export function hrefForPendingIntent(intent: PendingIntent): Href {
     case 'unit':
       return {
         pathname: '/projects/unit/[unitTypeId]',
-        params: { unitTypeId: intent.unitTypeId, resume: intent.intent },
+        params: { unitTypeId: intent.unitTypeId, resume: 'enquiry' },
       };
     case 'claimReward':
       return {

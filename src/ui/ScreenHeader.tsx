@@ -28,7 +28,7 @@ import { Text } from './Text';
  * positioned to stay centred against unequal left and right accessory widths,
  * and it truncates far sooner because it can only use the space between them.
  * Leading alignment gives a long screen title the whole width, which matters
- * for the real ones here ("Payment verification", "Group buy campaign").
+ * for the real ones here ("What can I afford?", and every unit-type name).
  *
  * ---------------------------------------------------------------------------
  * THE BACK BUTTON'S FALLBACK IS NOT OPTIONAL

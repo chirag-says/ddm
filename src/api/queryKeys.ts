@@ -143,10 +143,7 @@ export const qk = {
   projectDetail: (id: ObjectId) => ['projects', 'detail', id] as const,
   unitTypesByProject: (projectId: ObjectId) => ['projects', 'unitTypes', projectId] as const,
   unitTypeDetail: (id: ObjectId) => ['projects', 'unitType', id] as const,
-  campaignsByUnitType: (unitTypeId: ObjectId) => ['projects', 'campaigns', 'unitType', unitTypeId] as const,
-  campaignDetail: (id: ObjectId) => ['projects', 'campaign', id] as const,
   myBookings: () => ['projects', 'bookings', 'mine'] as const,
-  paymentConfig: ['projects', 'bookings', 'paymentConfig'] as const,
 
   taxonomy: ['taxonomy'] as const,
   categories: () => ['taxonomy', 'categories'] as const,

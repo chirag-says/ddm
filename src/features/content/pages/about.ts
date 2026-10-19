@@ -8,25 +8,12 @@ import type { ContentPage } from './model';
  */
 export const aboutPage: ContentPage = {
   id: 'about',
-  eyebrow: "India's Leading PropTech Platform",
+  eyebrow: 'No-Brokerage Property Platform',
   title: 'About Deal Direct',
   intro:
     '**DealDirect**, a venture by **Agrawal Business Network LLP**, is revolutionizing the way India buys, sells, and rents properties. By connecting you directly with property owners, we eliminate middlemen and save you lakhs in brokerage fees — making real estate transactions **transparent, simple, and affordable**.',
   webPath: '/about',
   sections: [
-    {
-      id: 'metrics',
-      blocks: [
-        {
-          type: 'stats',
-          items: [
-            { value: '₹50Cr+', label: 'Brokerage saved' },
-            { value: '10,000+', label: 'Happy families' },
-            { value: '12+', label: 'Cities covered' },
-          ],
-        },
-      ],
-    },
     {
       id: 'story',
       title: 'Born from a Simple Question: Why Pay Brokerage?',
@@ -40,10 +27,6 @@ export const aboutPage: ContentPage = {
         {
           type: 'paragraph',
           text: 'We realized that in an age of digital connectivity, paying 1-2% brokerage (often lakhs of rupees!) to a middleman was outdated. Property owners and buyers should be able to connect directly.',
-        },
-        {
-          type: 'paragraph',
-          text: "Today, we're proud to be India's fastest-growing PropTech platform, having helped thousands of families find their dream homes while saving them crores in brokerage fees.",
         },
         { type: 'heading', text: 'Our Mission' },
         {
@@ -75,11 +58,6 @@ export const aboutPage: ContentPage = {
               icon: 'trending-up-outline',
               title: 'Smart Insights',
               text: 'Get market trends, price history, and locality data to make informed property decisions.',
-            },
-            {
-              icon: 'headset-outline',
-              title: '24/7 Support',
-              text: 'Our dedicated support team is always ready to help you through your property journey.',
             },
           ],
         },
@@ -141,7 +119,6 @@ export const aboutPage: ContentPage = {
             'Transparent Pricing',
             'No Hidden Fees',
             'Direct Connections',
-            'Secure Platform',
           ],
         },
       ],
@@ -152,7 +129,7 @@ export const aboutPage: ContentPage = {
       blocks: [
         {
           type: 'paragraph',
-          text: 'Join thousands of happy families who found their perfect property through Deal Direct — without paying any brokerage.',
+          text: 'Find your next property on Deal Direct, without paying any brokerage.',
         },
         {
           type: 'actions',
