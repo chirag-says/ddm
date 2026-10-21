@@ -67,6 +67,14 @@ describe('builder units are enquiry-only', () => {
     }
     assert.deepEqual(found, []);
   });
+
+  it('the enquiry form still sends intent "enquiry", for a server from before the change', () => {
+    // Without it, the pre-2026-10-19 server records a paid booking.
+    const screen = withoutComments(
+      readFileSync(join(mobileRoot, 'app/projects/unit/[unitTypeId].tsx'), 'utf8')
+    );
+    assert.match(screen, /createBooking\(\{[\s\S]*?intent: 'enquiry',[\s\S]*?\}\)/);
+  });
 });
 
 describe('enquiry status', () => {

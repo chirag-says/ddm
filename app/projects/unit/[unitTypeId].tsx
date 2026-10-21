@@ -551,9 +551,9 @@ function InteriorPhotos({ photos }: { photos: UnitType['photos'] }) {
  * The enquiry form.
  *
  * It posts to `POST /bookings`, which kept its name when it stopped taking
- * money: the server records an enquiry whatever the body says, so there is no
- * `intent` to send and no booking variant of this sheet any more. Success
- * leads nowhere but a toast. The buyer is waiting on a phone call, and the
+ * money. There is no booking variant of this sheet any more; `intent` is sent
+ * only so a server from before the change records an enquiry too (see
+ * `CreateBookingRequest`). Success leads nowhere but a toast. The buyer is waiting on a phone call, and the
  * enquiry is listed under My enquiries if they want to see or withdraw it.
  */
 function EnquirySheet({
@@ -591,6 +591,7 @@ function EnquirySheet({
         clientPhone: clientPhone.trim(),
         clientEmail: clientEmail.trim() || undefined,
         notes: notes.trim() || undefined,
+        intent: 'enquiry',
       });
 
       close();

@@ -265,8 +265,13 @@ export interface ProjectBooking extends Timestamps {
 }
 
 /**
- * `POST /bookings`. Requires an authenticated user. Always records an enquiry;
- * there is no `intent` to send, and the server ignores one if sent.
+ * `POST /bookings`. Requires an authenticated user. The enquiries-only server
+ * records an enquiry whatever the body says and ignores `intent`.
+ *
+ * `intent: 'enquiry'` is still required here, for the server before that
+ * change: without it, that server records a PAID booking, or refuses a unit
+ * type with no booking amount. The app must not depend on which backend
+ * deploys first.
  *
  * Refusals worth handling individually, all of them actionable:
  * - 400 `NO_INVENTORY` — `availableUnits` is not at least 1, or was never set.
@@ -280,6 +285,7 @@ export interface CreateBookingRequest {
   clientPhone: string;
   clientEmail?: string;
   notes?: string;
+  intent: 'enquiry';
 }
 
 export interface CreateBookingResponse {
