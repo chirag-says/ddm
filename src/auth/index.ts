@@ -11,7 +11,12 @@ export {
   GoogleSignInCancelled,
   GoogleSignInUnavailable,
 } from './googleSignIn';
-export { isPhoneGateError, requestPhoneVerification, setPhoneGatePresenter } from './phoneGate';
+export {
+  ensurePhoneVerifiedBeforeUpload,
+  isPhoneGateError,
+  requestPhoneVerification,
+  setPhoneGatePresenter,
+} from './phoneGate';
 export {
   captureSessionCookie,
   restoreSessionCookie,

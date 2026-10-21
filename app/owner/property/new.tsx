@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { OwnerOnly } from '@/auth';
+import { OwnerOnly, ensurePhoneVerifiedBeforeUpload, useAuth } from '@/auth';
 import {
   EMPTY_LISTING_FORM,
   ListingForm,
@@ -31,25 +31,46 @@ import { Screen, Text } from '@/ui';
 function NewPropertyScreenContent() {
   const router = useRouter();
   const theme = useTheme();
+  const { user, refreshUser } = useAuth();
+  const userId = user?._id ?? null;
   const { add, isPending, error } = useAddListing();
+
+  /**
+   * Set synchronously on the first tap. `isPending` only disables the button
+   * after a re-render, so two taps inside one frame both reached `add` and
+   * posted the listing twice. The server now refuses the duplicate too; this
+   * stops the second upload from being sent at all.
+   */
+  const submitting = useRef(false);
 
   const [values, setValues] = useState(EMPTY_LISTING_FORM);
   const [newPhotos, setNewPhotos] = useState<CategorizedPhoto[]>([]);
   const [pendingReward, setPendingReward] = useState<ActionReward | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
+  /**
+   * Offered once, as soon as the account is known. This screen renders during
+   * the cold-start session probe (see OwnerOnly), so on mount the user can
+   * still be null, and drafts are only offered to the account that wrote them.
+   */
+  const draftOffered = useRef(false);
   useEffect(() => {
-    if (!hasListingDraft()) return;
-    Alert.alert('Resume draft?', 'You have an unfinished listing. Continue where you left off?', [
-      { text: 'Start over', style: 'destructive', onPress: () => clearListingDraft() },
-      { text: 'Resume', onPress: () => setValues(loadListingDraft()) },
-    ]);
-    // Only on mount.
-  }, []);
+    if (!userId || draftOffered.current) return;
+    draftOffered.current = true;
+    if (!hasListingDraft(userId)) return;
+    Alert.alert(
+      'Resume draft?',
+      'You have an unfinished listing. Continue where you left off? Photos need to be added again.',
+      [
+        { text: 'Start over', style: 'destructive', onPress: () => clearListingDraft() },
+        { text: 'Resume', onPress: () => setValues(loadListingDraft(userId)) },
+      ]
+    );
+  }, [userId]);
 
   const handleChange = (next: typeof values) => {
     setValues(next);
-    saveListingDraft(next);
+    saveListingDraft(next, userId);
   };
 
   /**
@@ -59,9 +80,22 @@ function NewPropertyScreenContent() {
    * with it, which is how the award went unseen before 2026-08-13.
    */
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
+
     try {
+      // Verify the number before the photos go anywhere. Backing out of the
+      // sheet leaves the form exactly as it was (and the draft on disk).
+      if (!(await ensurePhoneVerifiedBeforeUpload(user))) return;
+
       const response = await add({ values, newPhotos });
       clearListingDraft();
+
+      // The first listing is what makes an account an owner (ensureOwnerRole,
+      // server-side), and the add response carries no user. Without a re-read
+      // the app kept the old role, so My properties, Edit and Leads refused the
+      // brand-new owner until the next cold start.
+      void refreshUser();
 
       const propertyId = response.data._id;
       if (response.reward && response.reward.pointsAwarded > 0) {
@@ -73,6 +107,8 @@ function NewPropertyScreenContent() {
       router.replace(`/property/${propertyId}`);
     } catch {
       // surfaced via `error` below
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -95,6 +131,26 @@ function NewPropertyScreenContent() {
         </Pressable>
         <Text variant="title2">Add listing</Text>
       </View>
+
+      {/*
+        Said up front, not discovered at Publish. Listing needs a verified
+        mobile number (it is how buyers reach the owner), and an owner who
+        learns that only on the last step reads it as a surprise gate.
+      */}
+      {user?.phoneVerified === false ? (
+        <View className="flex-row items-start px-lg pb-sm">
+          <Ionicons
+            name="phone-portrait-outline"
+            size={16}
+            color={theme.colors.textSecondary}
+            style={{ marginTop: 2, marginRight: 6 }}
+          />
+          <Text variant="footnote" tone="secondary" className="flex-1">
+            Before publishing you will verify your mobile number with a one-time code, so buyers
+            can reach you. Your details are saved as you go.
+          </Text>
+        </View>
+      ) : null}
 
       <ListingForm
         values={values}

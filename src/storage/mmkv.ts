@@ -150,6 +150,13 @@ export const PREF_KEYS = {
    * direction to fail in.
    */
   shortlistMergedFor: 'property.shortlistMergedFor',
+  /**
+   * The account whose server shortlist the local list currently mirrors, or
+   * absent while the list holds guest saves. Without it a signed-in user's list
+   * outlived logout in `shortlist`, showed to the next guest, and was merged
+   * into whichever account signed in next (2026-10-17 audit).
+   */
+  shortlistMirrorOf: 'property.shortlistMirrorOf',
 } as const;
 
 /**
@@ -159,7 +166,12 @@ export const PREF_KEYS = {
  * device preferences, not account data, and resetting them at logout would be
  * a surprise rather than a safeguard.
  */
-export function clearUserScopedStorage(): void {
+export function clearUserScopedStorage({ keepDrafts = false }: { keepDrafts?: boolean } = {}): void {
   cacheStorage.clearAll();
-  draftStorage.clearAll();
+  // A session that ENDED (expired, revoked, signed out elsewhere) is not the
+  // user asking to throw their work away. Clearing drafts then meant an owner
+  // whose session lapsed during the nine-step listing form pressed Publish, got
+  // a 401, and lost the whole form. Drafts are tagged with their account (see
+  // features/listings/draft.ts), so keeping one never shows it to anyone else.
+  if (!keepDrafts) draftStorage.clearAll();
 }

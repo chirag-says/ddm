@@ -156,13 +156,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [status]);
 
   const endSession = useCallback(
-    async (reason: string | null) => {
+    async (reason: string | null, { userInitiated = false }: { userInitiated?: boolean } = {}) => {
       if (endingRef.current) return;
       endingRef.current = true;
 
       try {
         await clearSessionCookie();
-        clearUserScopedStorage();
+        // Drafts go only when the user signs out on purpose; see mmkv.ts.
+        clearUserScopedStorage({ keepDrafts: !userInitiated });
         // The backend may or may not still hold this device's push token (a
         // revoked session says nothing about it), but this app no longer has
         // an account to register it for. Forgetting it locally means the next
@@ -413,8 +414,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // that was never in question and cost a round trip inside a sheet the user
     // is waiting on.
     setUser(response.user);
+    // The verify response is built without `authMethods`, which only /me
+    // adds, and Delete account reads it to decide between asking for a
+    // password and re-confirming with Google. Left as is, a Google-only account
+    // that had just verified its phone was asked for a password it never had.
+    void fetchMe().then(setUser).catch(() => {});
     return response.user;
-  }, []);
+  }, [fetchMe]);
 
   const logout = useCallback(async (): Promise<void> => {
     try {
@@ -431,7 +437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the DealDirect one, and the next person to open the app on a shared
     // device is offered the previous user's account as the obvious choice.
     await forgetGoogleAccount();
-    await endSession(null);
+    await endSession(null, { userInitiated: true });
   }, [endSession]);
 
   const refreshUser = useCallback(async (): Promise<void> => {

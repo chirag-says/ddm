@@ -102,3 +102,24 @@ export function requestPhoneVerification(): Promise<boolean> {
 
   return inFlight;
 }
+
+/**
+ * Asks for the phone BEFORE a gated upload is sent, not after it bounces.
+ *
+ * The replay in `call()` is right for small JSON actions, but a listing is a
+ * multipart body of every photo the owner picked: letting it bounce off the
+ * 403 first sent all of it over mobile data for nothing, then sent it again,
+ * and the owner met "verify your number" only after pressing Publish at the
+ * end of a nine-step form. When the account is KNOWN to be unverified, the
+ * sheet opens first and nothing is uploaded until it resolves.
+ *
+ * Only an explicit `false` triggers this. An older backend that omits the
+ * field, or a user not yet loaded, falls through to the server gate, which
+ * stays the real control either way.
+ */
+export function ensurePhoneVerifiedBeforeUpload(
+  user: { phoneVerified?: boolean } | null | undefined
+): Promise<boolean> {
+  if (user?.phoneVerified !== false) return Promise.resolve(true);
+  return requestPhoneVerification();
+}

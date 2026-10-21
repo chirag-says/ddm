@@ -133,3 +133,25 @@ describe('the once-per-account guard', () => {
     assert.equal(decision.shouldMerge, true);
   });
 });
+
+describe('a list mirrored from another account', () => {
+  it('is never merged into the next account to sign in', () => {
+    // Account A's server list is written through to the device. A signs out,
+    // B signs in on the same phone: A's saves must not land in B's account.
+    const decision = decideMerge({ userId: B, localIds: ['a1', 'a2'], mergedFor: [A], mirrorOf: A });
+    assert.equal(decision.shouldMerge, false);
+    assert.equal(decision.skipReason, 'another-account');
+    assert.deepEqual(decision.propertyIds, []);
+  });
+
+  it('does not block the same account', () => {
+    const decision = decideMerge({ userId: A, localIds: ['a1'], mergedFor: [], mirrorOf: A });
+    assert.equal(decision.shouldMerge, true);
+  });
+
+  it('leaves guest saves (no mirror) to merge as before', () => {
+    const decision = decideMerge({ userId: B, localIds: ['g1'], mergedFor: [A], mirrorOf: null });
+    assert.equal(decision.shouldMerge, true);
+    assert.deepEqual(decision.propertyIds, ['g1']);
+  });
+});
