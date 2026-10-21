@@ -1,31 +1,23 @@
-import type Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
-
-import { Tag } from '@/ui';
 import type { PropertyDetail } from '../types';
+import { DetailIconList, type DetailIconListItem } from './DetailIconList';
 
 /**
- * The listing's character in a row of pills: furnished or not, ready or under
+ * The listing's character in a short list: furnished or not, ready or under
  * construction, which way it faces, when it is free, what parks.
  *
  * Everything here is also in the attribute tables further down, and that is
- * the point. The tables are for checking a fact; this row is for getting the
+ * the point. The tables are for checking a fact; this list is for getting the
  * gist before deciding whether to read on, which is what the portals'
  * "key highlights" strip does and what the page lacked between the facts and
  * the owner's own words. Only fields with a value appear, in a fixed order,
  * so two listings read the same way side by side.
  *
- * Capped so the row stays a glance. The cap is a count, not a height, because
- * a wrapped second line is fine and a third is a table.
+ * Capped so the list stays a glance: three rows of two.
  */
 
 const MAX_HIGHLIGHTS = 6;
 
-interface Highlight {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-}
+type Highlight = DetailIconListItem;
 
 const text = (value: unknown): string | undefined => {
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : undefined;
@@ -102,14 +94,5 @@ export interface DetailHighlightsProps {
 }
 
 export function DetailHighlights({ property }: DetailHighlightsProps) {
-  const highlights = buildHighlights(property);
-  if (highlights.length === 0) return null;
-
-  return (
-    <View className="flex-row flex-wrap gap-sm">
-      {highlights.map((item) => (
-        <Tag key={item.key} icon={item.icon} label={item.label} />
-      ))}
-    </View>
-  );
+  return <DetailIconList items={buildHighlights(property)} />;
 }

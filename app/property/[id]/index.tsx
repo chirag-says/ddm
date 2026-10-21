@@ -19,6 +19,7 @@ import {
   DetailHeader,
   DetailHero,
   DetailHighlights,
+  DetailIconList,
   DetailOwner,
   DetailOwnerActions,
   DetailSectionNav,
@@ -51,7 +52,6 @@ import {
   PriceLabel,
   Screen,
   Skeleton,
-  Tag,
   Text,
 } from '@/ui';
 
@@ -595,11 +595,17 @@ export default function PropertyDetailScreen() {
 
           {property.amenities.length > 0 ? (
             <Section title="Amenities" navLabel="Amenities">
-              <View className="flex-row flex-wrap gap-sm">
-                {property.amenities.map((amenity) => (
-                  <Tag key={amenity} label={amenity} />
-                ))}
-              </View>
+              {/* A checklist on its own surface, not pills: these are things
+                  the listing has, and pills read as buttons. */}
+              <DetailIconList
+                items={property.amenities.map((amenity) => ({
+                  key: amenity,
+                  icon: 'checkmark-circle',
+                  label: amenity,
+                }))}
+                iconTone="success"
+                surface
+              />
             </Section>
           ) : null}
 

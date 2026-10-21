@@ -61,6 +61,11 @@ export {
   type DetailHighlightsProps,
 } from './components/DetailHighlights';
 export {
+  DetailIconList,
+  type DetailIconListItem,
+  type DetailIconListProps,
+} from './components/DetailIconList';
+export {
   composeLocation,
   describeFloor,
   isPlusCode,
