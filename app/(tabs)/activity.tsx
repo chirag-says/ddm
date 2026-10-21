@@ -2,7 +2,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { SignInPrompt } from '@/auth';
 import { DealRow, useMyDeals } from '@/features/deals';
@@ -37,10 +45,10 @@ import type { DealListRow } from '@/types/backend/deal';
 import {
   EmptyState,
   ErrorState,
+  PressableScale,
   Screen,
   ScreenHeader,
   SectionLabel,
-  Segmented,
   Skeleton,
   Text,
   useToast,
@@ -106,63 +114,142 @@ export default function ActivityScreen() {
   const requested = SEGMENTS.find((option) => option.value === params.segment)?.value;
 
   const [segment, setSegment] = useState<Segment>(requested ?? 'shortlist');
-  const summary = useActivitySummary();
+  const counts = useActivityCounts();
 
   return (
     <Screen edges={['top']}>
-      {/* A root tab has nowhere to go back TO, so no back affordance. The
-          subtitle is the whole tab in one line, so the three segments not on
-          screen are still accounted for. */}
-      <ScreenHeader title="Activity" subtitle={summary} showBack={false} tight />
+      {/* A root tab has nowhere to go back TO, so no back affordance. */}
+      <ScreenHeader title="Activity" showBack={false} tight />
 
-      <View style={{ paddingHorizontal: screenPadding, paddingVertical: spacing.md }}>
-        <Segmented options={SEGMENTS} value={segment} onChange={setSegment} />
+      {/*
+        Text tabs on a rule, not a boxed segmented control. Four filled
+        segments in a well was the heaviest thing on the screen and sat
+        directly on the title; underlined words with their counts beside them
+        weigh almost nothing, and the count is where the three lists not on
+        screen are still accounted for.
+      */}
+      <ActivityTabs options={SEGMENTS} counts={counts} value={segment} onChange={setSegment} />
+
+      {/* Air between the strip and whichever list is showing. */}
+      <View style={{ flex: 1, paddingTop: spacing.lg }}>
+        {segment === 'shortlist' ? (
+          <ShortlistList onOpenSearch={() => router.push('/(tabs)/search')} />
+        ) : segment === 'enquiries' ? (
+          <DealsList onOpenSearch={() => router.push('/(tabs)/search')} />
+        ) : segment === 'searches' ? (
+          <SearchesList />
+        ) : (
+          <BookingsList />
+        )}
       </View>
-
-      {segment === 'shortlist' ? (
-        <ShortlistList onOpenSearch={() => router.push('/(tabs)/search')} />
-      ) : segment === 'enquiries' ? (
-        <DealsList onOpenSearch={() => router.push('/(tabs)/search')} />
-      ) : segment === 'searches' ? (
-        <SearchesList />
-      ) : (
-        <BookingsList />
-      )}
     </Screen>
   );
 }
 
 /**
- * "3 shortlisted · 1 deal · 2 searches · 1 enquiry", for the header.
+ * The strip: a word per list, its count beside it, an accent rule under the
+ * one showing, a hairline under all of them. Scrolls sideways on a narrow
+ * screen rather than squeezing the labels. Counts are omitted while loading
+ * or at zero, so a tab never reads "Searches 0" at a signed-out user.
+ */
+function ActivityTabs({
+  options,
+  counts,
+  value,
+  onChange,
+}: {
+  options: readonly { label: string; value: Segment }[];
+  counts: Partial<Record<Segment, number>>;
+  value: Segment;
+  onChange: (value: Segment) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        marginTop: spacing.sm,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.colors.border,
+      }}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityRole="tablist"
+        // `lg`, not `xl`: with four labels and two counts, the wider gap put
+        // the last tab a few points past a 360pt screen's edge.
+        contentContainerStyle={{ paddingHorizontal: screenPadding, gap: spacing.lg }}
+      >
+        {options.map((option) => {
+          const selected = option.value === value;
+          const count = counts[option.value];
+          return (
+            <PressableScale
+              key={option.value}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={count ? `${option.label}, ${count}` : option.label}
+              hitSlop={gesture.hitSlop}
+              onPress={() => onChange(option.value)}
+              activeScale={0.98}
+              style={{ paddingTop: spacing.sm }}
+            >
+              <View className="flex-row items-baseline" style={{ paddingBottom: spacing.md }}>
+                <Text
+                  variant={selected ? 'bodyEmphasis' : 'callout'}
+                  tone={selected ? 'primary' : 'secondary'}
+                  numberOfLines={1}
+                >
+                  {option.label}
+                </Text>
+                {count ? (
+                  <Text
+                    variant="footnote"
+                    tone={selected ? 'accent' : 'muted'}
+                    className="ml-xs"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    {count}
+                  </Text>
+                ) : null}
+              </View>
+              <View
+                style={{
+                  height: 2,
+                  borderRadius: 1,
+                  backgroundColor: selected ? theme.colors.accent : 'transparent',
+                }}
+              />
+            </PressableScale>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * How many things sit in each list, for the tab strip.
  *
  * Reads the four lists the segments read, so it costs no request a visit to
- * the tab would not make anyway (TanStack dedupes by key). Counts that are
- * still loading or zero are left out, and a guest sees only the shortlist,
- * which is the one list a guest has. Undefined when nothing is countable yet,
- * so the header draws the title alone rather than an empty line.
+ * the tab would not make anyway (TanStack dedupes by key). A count that is
+ * still loading is left out, and a guest gets only the shortlist, which is
+ * the one list a guest has.
  */
-function useActivitySummary(): string | undefined {
+function useActivityCounts(): Partial<Record<Segment, number>> {
   const shortlist = useShortlistList();
   const deals = useMyDeals();
   const searches = useSavedSearches();
   const bookings = useMyBookings();
 
-  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-  const parts = [
-    !shortlist.isLoading && shortlist.total > 0 ? count(shortlist.total, 'shortlisted', 'shortlisted') : null,
-    !deals.requiresAuth && !deals.isLoading && (deals.total ?? deals.deals.length) > 0
-      ? count(deals.total ?? deals.deals.length, 'deal', 'deals')
-      : null,
-    !searches.requiresAuth && !searches.isLoading && searches.items.length > 0
-      ? count(searches.items.length, 'search', 'searches')
-      : null,
-    bookings.signedIn && !bookings.isLoading && bookings.bookings.length > 0
-      ? count(bookings.bookings.length, 'enquiry', 'enquiries')
-      : null,
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join('  ·  ') : undefined;
+  return {
+    shortlist: shortlist.isLoading ? undefined : shortlist.total,
+    enquiries:
+      deals.requiresAuth || deals.isLoading ? undefined : (deals.total ?? deals.deals.length),
+    searches: searches.requiresAuth || searches.isLoading ? undefined : searches.items.length,
+    bookings: !bookings.signedIn || bookings.isLoading ? undefined : bookings.bookings.length,
+  };
 }
 
 /**
