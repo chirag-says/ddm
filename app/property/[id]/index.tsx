@@ -10,7 +10,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 
-import { setPendingIntent } from '@/auth';
+import { setPendingIntent, useAuth } from '@/auth';
 import { WEB_URL } from '@/config/env';
 import {
   DetailActions,
@@ -18,10 +18,13 @@ import {
   DetailFacts,
   DetailHeader,
   DetailHero,
+  DetailHighlights,
   DetailOwner,
+  DetailOwnerActions,
   DetailSectionNav,
   EmiCalculator,
   ExpandableText,
+  hasPriceStory,
   heroHeight,
   NearbyPlaces,
   PriceStory,
@@ -116,6 +119,7 @@ export default function PropertyDetailScreen() {
   const { id, resume } = useLocalSearchParams<{ id: string; resume?: string }>();
 
   const { property, isLoading, isMissing, error, refresh } = usePropertyDetail(id);
+  const { user } = useAuth();
 
   const [reporting, setReporting] = useState(false);
   /** The owner's published reviews, fetched only once this opens. */
@@ -320,6 +324,19 @@ export default function PropertyDetailScreen() {
 
   const { owner } = property;
 
+  /**
+   * The signed-in user is this listing's owner.
+   *
+   * Decided from the owner id on the document rather than the populated
+   * contact, which is null on a listing whose owner account was deleted and
+   * absent on every list endpoint. A guest is never an owner. The server
+   * applies the same rule to the enquiry itself; this only stops the page
+   * offering an owner a buyer's controls and refusing them afterwards.
+   */
+  const rawOwner = property.raw.owner;
+  const ownerId = typeof rawOwner === 'string' ? rawOwner : rawOwner?._id;
+  const isOwnListing = !!user && !!ownerId && user._id === ownerId;
+
   const rate =
     property.intent === 'rent' ? null : formatRatePerSqft(property.priceRupees, property.areaSqft);
   const posted = relativeDay(property.createdAt);
@@ -341,7 +358,9 @@ export default function PropertyDetailScreen() {
   return (
     <Screen unsafe>
       <DetailHeader
-        title={property.locationLabel || property.title}
+        // The listing's own name when the owner wrote one; a machine-made
+        // title is the facts over again, so the place stands in for it.
+        title={property.headline || property.locationLabel || property.title}
         scrollY={scrollY}
         onBack={handleBack}
         onShare={handleShare}
@@ -384,33 +403,32 @@ export default function PropertyDetailScreen() {
           {/*
             THE HEADER BLOCK.
 
-            Intent leads as a small chip above the price, rather than sitting
-            beside it. "For rent" and "₹45,000" on one line makes the eye
-            choose between them at the same height; stacked, the chip is read
-            first and instantly — which is what tells you whether the number
-            below it is a monthly figure or a purchase price. That distinction
-            is the difference between a 45,000 rupee flat and a 45,000 rupee
-            mistake.
+            Intent and negotiability lead as small chips above the price,
+            rather than sitting beside it. "For rent" and "₹45,000" on one
+            line makes the eye choose between them at the same height; stacked,
+            the chips are read first and instantly — which is what tells you
+            whether the number below is a monthly figure or a purchase price.
+            That distinction is the difference between a 45,000 rupee flat and
+            a 45,000 rupee mistake.
           */}
-          {property.intent ? (
-            <Badge
-              label={property.intent === 'rent' ? 'For rent' : 'For sale'}
-              tone="accent"
-              className="mb-sm self-start"
-            />
+          {property.intent || property.negotiable ? (
+            <View className="mb-sm flex-row flex-wrap" style={{ gap: spacing.sm }}>
+              {property.intent ? (
+                <Badge
+                  label={property.intent === 'rent' ? 'For rent' : 'For sale'}
+                  tone="accent"
+                />
+              ) : null}
+              {property.negotiable ? <Badge label="Negotiable" tone="neutral" /> : null}
+            </View>
           ) : null}
 
           {/* The number the screen is scanned by. Nothing else comes near it. */}
-          <View className="flex-row items-center">
-            <PriceLabel
-              price={property.priceRupees}
-              variant="title1"
-              suffix={property.intent === 'rent' ? '/month' : undefined}
-            />
-            {property.negotiable ? (
-              <Badge label="Negotiable" tone="neutral" className="ml-sm" />
-            ) : null}
-          </View>
+          <PriceLabel
+            price={property.priceRupees}
+            variant="title1"
+            suffix={property.intent === 'rent' ? '/month' : undefined}
+          />
 
           {/*
             The unit rate, directly under the price and subordinate to it.
@@ -428,6 +446,19 @@ export default function PropertyDetailScreen() {
           {rate ? (
             <Text variant="footnote" tone="muted" className="mt-xs">
               {rate}
+            </Text>
+          ) : null}
+
+          {/*
+            The listing's name, when the owner wrote one. It used to sit under
+            an "About this property" heading two screens down, after the
+            price story, where it read as the start of the description rather
+            than as what the listing is called. A machine-made title is the
+            facts over again and is not shown at all; see `headline`.
+          */}
+          {property.headline ? (
+            <Text variant="title3" className="mt-md">
+              {property.headline}
             </Text>
           ) : null}
 
@@ -449,10 +480,12 @@ export default function PropertyDetailScreen() {
               onPress={() => localitySlug && router.push(`/locality/${localitySlug}`)}
               className="mt-sm flex-row items-start active:opacity-70"
             >
+              {/* A muted glyph. The brand red beside black type and a blue
+                  chip was a third colour on a line that carries no action. */}
               <Ionicons
                 name="location-outline"
                 size={15}
-                color={theme.colors.brand}
+                color={theme.colors.textMuted}
                 style={{ marginTop: 2 }}
               />
               <Text variant="callout" tone="secondary" numberOfLines={2} className="ml-xs flex-1">
@@ -473,6 +506,7 @@ export default function PropertyDetailScreen() {
             The street line, only when it adds something. `address.line` on
             real listings is frequently the locality and city over again, and
             printing it under an identical line reads as a rendering fault.
+            (A plus code never reaches here; the adapter drops it.)
           */}
           {property.addressLine && property.addressLine !== property.locationLabel ? (
             <Text
@@ -489,25 +523,10 @@ export default function PropertyDetailScreen() {
             <DetailFacts property={property} />
           </View>
 
-          {/*
-            THE PRICE STORY (Phase 1/4, F19)
-
-            Placed after the facts and before the prose, which is where it
-            answers the question the facts have just raised: this is a 2 BHK of
-            this size at this price — is that a lot? It unmounts entirely when
-            the server has nothing to say, so most listings will not show it,
-            and the ones that do are showing measurements rather than advice.
-
-            `showDaysListed` is off because the provenance line below already
-            says how old the listing is, from a different field.
-          */}
-          <Section title="Price" navLabel="Price">
-            <PriceStory
-              intelligence={property.priceIntelligence}
-              onOpenLocality={openLocality}
-              showDaysListed={false}
-            />
-          </Section>
+          {/* The gist in pills, between the numbers and the prose. */}
+          <View className="mt-md">
+            <DetailHighlights property={property} />
+          </View>
 
           {/*
             PROVENANCE, and why it sits below the facts rather than above them.
@@ -547,26 +566,29 @@ export default function PropertyDetailScreen() {
           ) : null}
 
           {/*
-            Only listings whose owner wrote a real title reach this. It shares
-            "About" in the nav with the description below, because whichever of
-            the two exists is the first prose on the page and the user jumping
-            to "About" wants the top of it — registering the same label twice
-            would put two identical chips on the strip. `useSectionRegistry`
-            keys on the label, so the second registration overwrites the first;
-            they are adjacent, so the offset difference is a few points.
+            THE PRICE STORY (Phase 1/4, F19)
+
+            After the facts and before the prose, which is where it answers
+            the question the facts have just raised: this is a 2 BHK of this
+            size at this price — is that a lot? Most listings have no story,
+            and the heading goes with the block: a "Price" heading over nothing
+            put the posted-date line beneath it where the price should be.
+
+            `showDaysListed` is off because the provenance line above already
+            says how old the listing is, from a different field.
           */}
-          {property.headline ? (
-            <Section title="About this property" navLabel="About">
-              <Text variant="body">{property.headline}</Text>
+          {hasPriceStory(property.priceIntelligence, false) ? (
+            <Section title="Price" navLabel="Price">
+              <PriceStory
+                intelligence={property.priceIntelligence}
+                onOpenLocality={openLocality}
+                showDaysListed={false}
+              />
             </Section>
           ) : null}
 
-          {property.description && !property.headline ? (
+          {property.description ? (
             <Section title="About this property" navLabel="About">
-              <ExpandableText text={property.description} />
-            </Section>
-          ) : property.description ? (
-            <Section title="Description">
               <ExpandableText text={property.description} />
             </Section>
           ) : null}
@@ -666,11 +688,13 @@ export default function PropertyDetailScreen() {
                 className="flex-row items-center rounded-xl border border-border bg-surface active:opacity-80"
                 style={{ padding: spacing.base, gap: spacing.md }}
               >
+                {/* Accent, not brand: this is a control, and the accent is
+                    what every other control on the page is drawn in. */}
                 <View
                   className="items-center justify-center rounded-lg"
-                  style={{ width: 44, height: 44, backgroundColor: theme.colors.brandMuted }}
+                  style={{ width: 44, height: 44, backgroundColor: theme.colors.accentMuted }}
                 >
-                  <Ionicons name="map-outline" size={22} color={theme.colors.brand} />
+                  <Ionicons name="map-outline" size={22} color={theme.colors.accent} />
                 </View>
                 <View className="flex-1">
                   <Text variant="bodyEmphasis">See location on map</Text>
@@ -736,20 +760,23 @@ export default function PropertyDetailScreen() {
             Last, quiet, and after the thing it refers to. Reporting is rare and
             consequential, which argues for being reachable rather than for
             being prominent — it held a quarter of the action bar and competed
-            with the one action the screen exists for.
+            with the one action the screen exists for. Not offered to the
+            owner: nobody reports their own listing.
           */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Report this listing"
-            onPress={() => setReporting(true)}
-            hitSlop={12}
-            className="mt-3xl flex-row items-center justify-center active:opacity-60"
-          >
-            <Ionicons name="flag-outline" size={15} color={theme.colors.textMuted} />
-            <Text variant="footnote" tone="muted" className="ml-xs">
-              Report this listing
-            </Text>
-          </Pressable>
+          {!isOwnListing ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Report this listing"
+              onPress={() => setReporting(true)}
+              hitSlop={12}
+              className="mt-3xl flex-row items-center justify-center active:opacity-60"
+            >
+              <Ionicons name="flag-outline" size={15} color={theme.colors.textMuted} />
+              <Text variant="footnote" tone="muted" className="ml-xs">
+                Report this listing
+              </Text>
+            </Pressable>
+          ) : null}
          </SectionRegistryContext.Provider>
         </View>
       </Animated.ScrollView>
@@ -764,14 +791,26 @@ export default function PropertyDetailScreen() {
         One action. The `tel:` shortcut that sat beside it is gone — see
         `DetailActions` for what it did and why removing the button does not
         remove the exposure.
+
+        The owner gets a different bar: "I'm interested" and "Save" are a
+        buyer's controls, and the server refuses the first on your own listing
+        anyway. See `DetailOwnerActions`.
       */}
-      <DetailActions
-        interest={interest}
-        property={property}
-        remaining={enquiriesLeft}
-        onRequestEnquire={() => setEnquiring(true)}
-        onHeightChange={setActionBarHeight}
-      />
+      {isOwnListing ? (
+        <DetailOwnerActions
+          onEdit={() => router.push(`/owner/property/${id}/edit`)}
+          onViewEnquiries={() => router.push('/owner/leads')}
+          onHeightChange={setActionBarHeight}
+        />
+      ) : (
+        <DetailActions
+          interest={interest}
+          property={property}
+          remaining={enquiriesLeft}
+          onRequestEnquire={() => setEnquiring(true)}
+          onHeightChange={setActionBarHeight}
+        />
+      )}
 
       {/*
         THE CONSEQUENCE IS STATED BEFORE THE SIDE EFFECT, NOT AFTER IT.
@@ -782,17 +821,22 @@ export default function PropertyDetailScreen() {
         reversible: withdrawing pulls the user from `interestedUsers` and frees
         the slot, and leaves the lead, the notification and the message where
         they are. So the sheet runs first and there is no Undo afterwards.
+
+        Not mounted for the owner, so a stale `resume=enquire` link cannot
+        raise it on their own listing.
       */}
-      <EnquirySheet
-        visible={enquiring}
-        subtitle={property.locationLabel || property.title}
-        remaining={enquiriesLeft}
-        onCancel={() => setEnquiring(false)}
-        onConfirm={() => {
-          setEnquiring(false);
-          interest.toggle();
-        }}
-      />
+      {!isOwnListing ? (
+        <EnquirySheet
+          visible={enquiring}
+          subtitle={property.locationLabel || property.title}
+          remaining={enquiriesLeft}
+          onCancel={() => setEnquiring(false)}
+          onConfirm={() => {
+            setEnquiring(false);
+            interest.toggle();
+          }}
+        />
+      ) : null}
 
       <ReportSheet
         propertyId={property.id}

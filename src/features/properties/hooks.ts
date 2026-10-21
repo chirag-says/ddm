@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ApiError, qk } from '@/api';
 import type { ObjectId } from '@/types/backend/common';
 import type { PropertySearchParams } from '@/types/backend/property';
+import { adaptPropertyDetail } from './adapters';
 import { fetchPropertyDetail, fetchPropertyPage, type PropertyPage } from './api';
 import { recordView } from './recentlyViewed';
 import type { PropertyDetail, PropertySummary } from './types';
@@ -132,6 +133,13 @@ export function usePropertyDetail(id: ObjectId | undefined): PropertyDetailQuery
   const query = useQuery({
     queryKey: qk.propertyDetail(id ?? ''),
     queryFn: ({ signal }) => fetchPropertyDetail(id as ObjectId, signal),
+    // The cache holds the server's document; the UI shape is derived on read.
+    // It used to be adapted inside `queryFn`, so a listing opened once sat in
+    // the persisted cache in the OLD adapted shape for up to a day after the
+    // adapter changed, and a fix to how amenities or the address are read
+    // did not reach the screen until the user cleared the app. A module-level
+    // `select` is stable, so TanStack memoises its result per document.
+    select: adaptPropertyDetail,
     enabled: !!id,
     staleTime: Infinity,
     gcTime: 30 * 60_000,

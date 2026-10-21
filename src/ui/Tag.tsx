@@ -16,9 +16,12 @@ import { Text } from './Text';
  * the selectable filter — and neither has to grow a `readOnly` prop that would
  * make its accessibility behaviour conditional.
  *
- * Filled rather than outlined. A page of outlined pills is a page of borders,
- * and the surface ramp already separates a recessed fill from the page behind
- * it without one.
+ * Surface fill with a hairline edge, since 2026-10-21. It was the muted fill
+ * alone, which is one step off the page colour (`surfaceMuted` #F5F5F5 on
+ * `canvas` #F1F2F6): on the detail page, where every tag sits straight on
+ * the page, the pills were close to invisible and the amenities read as loose
+ * words. The edge is what makes them objects again; on a white card the fill
+ * disappears and the edge still does the job.
  */
 
 export interface TagProps {
@@ -33,7 +36,7 @@ export function Tag({ label, icon, className = '' }: TagProps) {
 
   return (
     <View
-      className={`flex-row items-center self-start rounded-full bg-surface-muted px-md py-sm ${className}`}
+      className={`flex-row items-center self-start rounded-full border border-border bg-surface px-md py-sm ${className}`}
     >
       {icon ? (
         <Ionicons

@@ -33,6 +33,7 @@
 
 import type { Property } from '@/types/backend/property';
 import { formatPrice } from '@/ui';
+import { describeFloor, readMoney } from './detailFormat';
 
 export interface FieldRow {
   label: string;
@@ -104,15 +105,17 @@ function yesOnly(value: unknown): string | undefined {
  *
  * These accept either a number or free text: the schema types `deposit` and
  * `maintenance` as Mixed precisely because listings say "2 months",
- * "Included", or "On request" as often as they give a figure. A number is
- * formatted as currency and a string is passed through as written.
+ * "Included", or "On request" as often as they give a figure. A figure is
+ * formatted as currency, including one that arrived as a string (the app's
+ * form sends "120000"); other text is passed through as written.
  */
 function money(value: unknown): string | undefined {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) && value > 0 ? formatPrice(value) : undefined;
-  }
-  return text(value);
+  const read = readMoney(value);
+  if (!read) return undefined;
+  return 'amount' in read ? formatPrice(read.amount) : read.text;
 }
+
+const isRental = (property: Property): boolean => /rent/i.test(property.listingType ?? '');
 
 /** An ISO date as a readable day. Invalid dates drop rather than print "Invalid Date". */
 function date(value: unknown): string | undefined {
@@ -146,8 +149,9 @@ const SECTIONS: SectionSpec[] = [
       {
         label: 'Floor',
         // Two fields, one fact. "3 of 12" is what a reader wants; two rows
-        // reading "3" and "12" makes them do the join themselves.
-        read: (p) => join([text(p.floorNo), text(p.totalFloors) && `of ${text(p.totalFloors)}`]),
+        // reading "3" and "12" makes them do the join themselves. A building
+        // height on its own used to print as "of 5".
+        read: (p) => describeFloor(p.floorNo, p.totalFloors),
       },
       { label: 'Construction', read: (p) => p.constructionStatus },
       // `propertyAge` and `ageOfProperty` are the same fact under two names,
@@ -224,7 +228,10 @@ const SECTIONS: SectionSpec[] = [
       {
         label: 'Price per sqft',
         read: (p) => p.area?.pricePerSqft,
-        format: (value) => {
+        // Sale only. On a rental the stored figure is the monthly rent divided
+        // by the area ("₹72 / sqft"), which is not a number anyone compares.
+        format: (value, p) => {
+          if (isRental(p)) return undefined;
           if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined;
           return `${formatPrice(value)} / sqft`;
         },
@@ -246,8 +253,21 @@ const SECTIONS: SectionSpec[] = [
     title: 'Charges',
     fields: [
       { label: 'Security deposit', read: (p) => p.deposit ?? p.securityDeposit, format: money },
-      { label: 'Maintenance', read: (p) => p.maintenance, format: money },
-      { label: 'Maintenance included', read: (p) => p.maintenanceIncluded, format: yesNo },
+      {
+        label: 'Maintenance',
+        // One row for two fields. `maintenance` is the figure or the owner's
+        // words, `maintenanceIncluded` the flag; "Maintenance: Included" above
+        // "Maintenance included: Yes" said one thing twice.
+        read: (p) => p.maintenance,
+        format: (value, p) => {
+          const stated = money(value);
+          const included = p.maintenanceIncluded === true;
+          const includedLabel = isRental(p) ? 'Included in rent' : 'Included';
+          if (!stated) return included ? includedLabel : undefined;
+          if (included && !/includ/i.test(stated)) return `${stated} · ${includedLabel}`;
+          return stated;
+        },
+      },
       { label: 'Booking amount', read: (p) => p.bookingAmount, format: money },
       { label: 'GST', read: (p) => p.gstApplicable },
     ],

@@ -55,7 +55,13 @@ export const qk = {
   collection: (id: string, params: PropertySearchParams) =>
     ['properties', 'collection', id, normalizeSearchParams(params)] as const,
 
-  propertyDetail: (id: ObjectId) => ['properties', 'detail', id] as const,
+  /**
+   * The segment after `detail` names what the cache holds. Until 2026-10-21
+   * it held the ADAPTED listing; it now holds the server document and adapts
+   * on read. A persisted entry from the earlier shape must not be handed to
+   * the adapter, so the old key is simply never read again and ages out.
+   */
+  propertyDetail: (id: ObjectId) => ['properties', 'detail', 'document', id] as const,
 
   /**
    * Whether the signed-in user has expressed interest in one listing.

@@ -49,12 +49,30 @@ export {
   type FieldRow,
   type FieldSection,
 } from './fieldMap';
-export { DetailActions, type DetailActionsProps } from './components/DetailActions';
+export {
+  DetailActions,
+  DetailOwnerActions,
+  type DetailActionsProps,
+  type DetailOwnerActionsProps,
+} from './components/DetailActions';
+export {
+  DetailHighlights,
+  buildHighlights,
+  type DetailHighlightsProps,
+} from './components/DetailHighlights';
+export {
+  composeLocation,
+  describeFloor,
+  isPlusCode,
+  normalizeAmenities,
+  readMoney,
+  readableAddressLine,
+} from './detailFormat';
 export { ReportSheet, type ReportSheetProps } from './components/ReportSheet';
 export { VideoWalkthrough, type VideoWalkthroughProps } from './components/VideoWalkthrough';
 export { NearbyPlaces, type NearbyPlacesProps } from './components/NearbyPlaces';
 export { EmiCalculator, type EmiCalculatorProps } from './components/EmiCalculator';
-export { PriceStory, type PriceStoryProps } from './components/PriceStory';
+export { PriceStory, hasPriceStory, type PriceStoryProps } from './components/PriceStory';
 export {
   MARKET_DEAD_BAND_PCT,
   configurationLabel,

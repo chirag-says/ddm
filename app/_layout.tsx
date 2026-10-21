@@ -21,6 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { startAnalytics } from '@/analytics';
 import { createQueryClient, PERSIST_MAX_AGE, queryPersister, shouldPersistQuery } from '@/api';
 import { AuthProvider, PhoneVerificationSheet } from '@/auth';
+import { APP_VERSION } from '@/config/env';
 import { AnimatedSplash } from '@/features/onboarding';
 import { PushRouter } from '@/notifications';
 import { initSentry, wrapRoot } from '@/observability';
@@ -136,6 +137,11 @@ function RootLayout() {
           persistOptions={{
             persister: queryPersister,
             maxAge: PERSIST_MAX_AGE,
+            // A new build starts from an empty persisted cache. What a query
+            // caches is shaped by the code that wrote it, and that code changes
+            // between releases; without this, an update could show a day of
+            // listings in a shape its own screens no longer expect.
+            buster: APP_VERSION,
             dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
           }}
         >
