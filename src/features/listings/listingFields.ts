@@ -146,7 +146,11 @@ export function appendListingFields(form: FieldSink, values: ListingFormValues) 
       })
     );
   } else {
-    const washrooms = num(values.washrooms);
+    // Six types also ask "Washrooms" in their per-type configuration below.
+    // Sending both put an array on the wire, which the numeric schema field
+    // rejects, so the save failed. One value goes: the per-type answer when the
+    // owner gave one (the general field defaults to 1), else the general field.
+    const washrooms = num(values.commercialConfig.washrooms ?? '') ?? num(values.washrooms);
     if (washrooms !== undefined) form.append('washrooms', String(washrooms));
     appendIfPresent(form, 'commercialSubType', values.commercialSubType);
     appendIfPresent(form, 'floorHeight', values.floorHeight);
@@ -162,6 +166,7 @@ export function appendListingFields(form: FieldSink, values: ListingFormValues) 
       0, because "not stated" and "zero loading docks" are different claims.
     */
     for (const [key, raw] of Object.entries(values.commercialConfig)) {
+      if (key === 'washrooms') continue; // sent once, above
       const value = num(raw);
       if (value !== undefined) form.append(key, String(value));
     }

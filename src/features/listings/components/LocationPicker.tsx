@@ -52,15 +52,26 @@ export interface LocationPickerProps {
   latitude: string;
   longitude: string;
   onChange: (next: { latitude: string; longitude: string }) => void;
-  /** Filled in from a reverse geocode when the owner uses their location. */
-  onResolvePlace?: (place: {
-    city: string;
-    locality: string;
-    addressLine: string;
-    state: string;
-    pincode: string;
-    landmark: string;
-  }) => void;
+  /**
+   * Filled in from a reverse geocode when the owner uses their location.
+   *
+   * Carries the coordinates it was resolved for, and the parent must write
+   * them together with the address. The pin is set first via `onChange`, but
+   * the parent's handler for THIS call closes over the form values from before
+   * that update, so merging the address into them alone put the old (empty)
+   * coordinates back and erased the pin the owner had just dropped.
+   */
+  onResolvePlace?: (
+    place: {
+      city: string;
+      locality: string;
+      addressLine: string;
+      state: string;
+      pincode: string;
+      landmark: string;
+    },
+    coordinates: { latitude: string; longitude: string }
+  ) => void;
   /** Re-geocoded when this changes, to follow what the owner typed. */
   addressQuery: string;
 }
@@ -123,11 +134,12 @@ export function LocationPicker({
       }
 
       const { latitude: gotLat, longitude: gotLng } = located.coordinates;
-      onChange({ latitude: toFixed6(gotLat), longitude: toFixed6(gotLng) });
+      const pin = { latitude: toFixed6(gotLat), longitude: toFixed6(gotLng) };
+      onChange(pin);
 
       const described = await describeCoordinates(gotLat, gotLng);
       if (described.status === 'ok' && onResolvePlace) {
-        onResolvePlace(described.place);
+        onResolvePlace(described.place, pin);
         toast.show('Location pinned and address filled in.', 'success');
       } else {
         toast.show('Location pinned.', 'success');

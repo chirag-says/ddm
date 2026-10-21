@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { OwnerOnly } from '@/auth';
+import { OwnerOnly, ensurePhoneVerifiedBeforeUpload, useAuth } from '@/auth';
 import {
   ListingForm,
   existingCategorizedPhotos,
@@ -33,6 +33,14 @@ function EditPropertyScreenContent() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { properties, isLoading, error, refresh } = useMyProperties();
   const { update, isPending, error: updateError } = useUpdateListing(id);
+  const { user } = useAuth();
+
+  /**
+   * Set synchronously on the first tap; `isPending` disables the button only
+   * after a re-render, and a second PUT in that frame attached every new photo
+   * to the listing twice.
+   */
+  const submitting = useRef(false);
 
   const property = properties.find((p) => p._id === id);
 
@@ -50,12 +58,18 @@ function EditPropertyScreenContent() {
   }
 
   const handleSubmit = async () => {
-    if (!values || !property) return;
+    if (!values || !property || submitting.current) return;
+    submitting.current = true;
     try {
+      // Same reasoning as the add screen: ask for the number before the new
+      // photos are uploaded, not after the request bounces off the gate.
+      if (!(await ensurePhoneVerifiedBeforeUpload(user))) return;
       await update({ values, newPhotos, existingPhotos: existingPhotos ?? [] });
       router.back();
     } catch {
       // surfaced via `updateError` below
+    } finally {
+      submitting.current = false;
     }
   };
 

@@ -3,6 +3,7 @@ import { afterEach, describe, it } from 'node:test';
 
 import {
   PHONE_GATE_CODE,
+  ensurePhoneVerifiedBeforeUpload,
   isPhoneGateError,
   requestPhoneVerification,
   setPhoneGatePresenter,
@@ -117,5 +118,45 @@ describe('presenting', () => {
 
     setPhoneGatePresenter(() => Promise.resolve(true));
     assert.equal(await requestPhoneVerification(), true);
+  });
+});
+
+describe('asking before an upload', () => {
+  it('opens the sheet first for an account known to be unverified', async () => {
+    const sheet = controllablePresenter();
+    setPhoneGatePresenter(sheet.presenter);
+
+    const ready = ensurePhoneVerifiedBeforeUpload({ phoneVerified: false });
+    assert.equal(sheet.calls, 1);
+    sheet.settle(true);
+    assert.equal(await ready, true);
+  });
+
+  it('reports a backed-out sheet so nothing is uploaded', async () => {
+    const sheet = controllablePresenter();
+    setPhoneGatePresenter(sheet.presenter);
+
+    const ready = ensurePhoneVerifiedBeforeUpload({ phoneVerified: false });
+    sheet.settle(false);
+    assert.equal(await ready, false);
+  });
+
+  it('does not ask a verified account', async () => {
+    const sheet = controllablePresenter();
+    setPhoneGatePresenter(sheet.presenter);
+
+    assert.equal(await ensurePhoneVerifiedBeforeUpload({ phoneVerified: true }), true);
+    assert.equal(sheet.calls, 0);
+  });
+
+  it('leaves an unknown state to the server gate rather than guessing', async () => {
+    // An older backend omits the field; a user not yet loaded is null. Neither
+    // is proof of anything, so the request goes and the 403 path decides.
+    const sheet = controllablePresenter();
+    setPhoneGatePresenter(sheet.presenter);
+
+    assert.equal(await ensurePhoneVerifiedBeforeUpload({}), true);
+    assert.equal(await ensurePhoneVerifiedBeforeUpload(null), true);
+    assert.equal(sheet.calls, 0);
   });
 });

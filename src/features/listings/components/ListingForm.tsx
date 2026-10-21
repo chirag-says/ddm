@@ -489,15 +489,18 @@ export function ListingForm({
                   onChange={(next) =>
                     onChange({ ...values, latitude: next.latitude, longitude: next.longitude })
                   }
-                  onResolvePlace={(place) =>
+                  onResolvePlace={(place, coordinates) =>
                     /*
                       Fills only what is still EMPTY. The owner may have typed a
                       locality the geocoder words differently, and overwriting
                       what they wrote with the OS's phrasing is the kind of
-                      helpful that loses data.
+                      helpful that loses data. The coordinates go back in with
+                      it: `values` here predates the pin (see LocationPicker).
                     */
                     onChange({
                       ...values,
+                      latitude: coordinates.latitude,
+                      longitude: coordinates.longitude,
                       city: values.city || place.city,
                       locality: values.locality || place.locality,
                       addressLine: values.addressLine || place.addressLine,

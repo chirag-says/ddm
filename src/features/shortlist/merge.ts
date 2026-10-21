@@ -47,6 +47,8 @@ export type MergeSkipReason =
   | 'no-session'
   /** This account already had its handover on this install. */
   | 'already-merged'
+  /** The local list is a copy of a DIFFERENT account's server list. */
+  | 'another-account'
   | 'nothing-local';
 
 export interface MergeDecision {
@@ -65,6 +67,13 @@ export interface MergeInput {
   localIds: readonly string[];
   /** Accounts this install has already handed a list to. */
   mergedFor: readonly string[];
+  /**
+   * Whose server list the local list mirrors (`PREF_KEYS.shortlistMirrorOf`),
+   * or null when it holds guest saves. A signed-in account's list is written
+   * through to the device, and before this was checked it outlived logout and
+   * was merged into the NEXT account to sign in on the same phone.
+   */
+  mirrorOf?: string | null;
 }
 
 /**
@@ -75,9 +84,14 @@ export interface MergeInput {
  * account that has already merged is reported as such rather than as having
  * nothing to send. Both distinctions are what the caller logs.
  */
-export function decideMerge({ userId, localIds, mergedFor }: MergeInput): MergeDecision {
+export function decideMerge({ userId, localIds, mergedFor, mirrorOf }: MergeInput): MergeDecision {
   if (!userId) {
     return { shouldMerge: false, propertyIds: [], skipReason: 'no-session', truncated: false };
+  }
+
+  // Never hand one account's list to another. The caller discards it instead.
+  if (mirrorOf && mirrorOf !== userId) {
+    return { shouldMerge: false, propertyIds: [], skipReason: 'another-account', truncated: false };
   }
 
   if (mergedFor.includes(userId)) {

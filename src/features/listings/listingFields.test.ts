@@ -73,3 +73,27 @@ describe('appendListingFields', () => {
     }
   });
 });
+
+describe('commercial washrooms', () => {
+  // Six commercial types ask "Washrooms" in their per-type configuration as
+  // well as in the general field (which defaults to 1). Both were appended, so
+  // the server received an array, the number cast failed and the save errored.
+  const commercial = (washrooms: string, config: Record<string, string>) =>
+    fieldsOf({
+      categoryName: 'Commercial',
+      propertyTypeName: 'Office Space',
+      washrooms,
+      commercialConfig: config,
+    });
+
+  it('is sent once when the per-type box is filled, and that answer wins', () => {
+    const f = commercial('1', { washrooms: '4', workstations: '20' });
+    assert.equal(f.washrooms, '4');
+    assert.equal(f.workstations, '20');
+  });
+
+  it('falls back to the general field when the per-type box is empty', () => {
+    const f = commercial('2', { washrooms: '', workstations: '20' });
+    assert.equal(f.washrooms, '2');
+  });
+});
