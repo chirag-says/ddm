@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ApiError } from '@/api';
-import { Button, Input, Sheet, Text } from '@/ui';
+import { Button, PasswordInput, Sheet, Text } from '@/ui';
 import { useAuth } from '../AuthProvider';
 
 export interface GoogleLinkSheetProps {
@@ -99,10 +99,9 @@ export function GoogleLinkSheet({ pending, onClose, onLinked }: GoogleLinkSheetP
             : 'This email already has a DealDirect account. Enter its password once and Google will be connected to it.'}
         </Text>
 
-        <Input
+        <PasswordInput
           label="Password"
           placeholder="Your existing password"
-          secureTextEntry
           autoCapitalize="none"
           autoComplete="current-password"
           textContentType="password"

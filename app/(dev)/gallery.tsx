@@ -10,7 +10,7 @@ import {
   Chip,
   EmptyState,
   ErrorState,
-  Input,
+  Input, PasswordInput,
   PriceLabel,
   RangeSlider,
   Refreshable,
@@ -135,7 +135,7 @@ export default function GalleryScreen() {
 
         <Section title="Inputs">
           <Input label="Email" placeholder="you@example.com" keyboardType="email-address" />
-          <Input label="Password" placeholder="••••••••" secureTextEntry />
+          <PasswordInput label="Password" placeholder="••••••••" />
           <Input label="Phone" placeholder="10-digit number" error="Enter a valid 10-digit number" />
           <Input label="Locality" placeholder="Andheri West" hint="Used to rank nearby listings" />
           <Select

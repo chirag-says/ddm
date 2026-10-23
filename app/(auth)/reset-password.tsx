@@ -5,7 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 
 import { ApiError, call, usersEndpoints } from '@/api';
 import { AuthResult, AuthShell, resetPasswordSchema, type ResetPasswordValues } from '@/auth';
-import { Button, Input, Text } from '@/ui';
+import { Button, Input, PasswordInput, Text } from '@/ui';
 
 /**
  * Reset password — in-app screen.
@@ -102,10 +102,9 @@ export default function ResetPasswordScreen() {
         control={control}
         name="newPassword"
         render={({ field, fieldState }) => (
-          <Input
+          <PasswordInput
             label="New password"
             placeholder="At least 8 characters"
-            secureTextEntry
             autoCapitalize="none"
             autoComplete="new-password"
             textContentType="newPassword"
@@ -123,10 +122,9 @@ export default function ResetPasswordScreen() {
         control={control}
         name="confirmPassword"
         render={({ field, fieldState }) => (
-          <Input
+          <PasswordInput
             label="Confirm new password"
             placeholder="Re-enter your password"
-            secureTextEntry
             autoCapitalize="none"
             autoComplete="new-password"
             textContentType="newPassword"
