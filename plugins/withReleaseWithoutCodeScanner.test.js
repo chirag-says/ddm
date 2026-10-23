@@ -7,7 +7,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { addReleaseExclusions } = require('./withReleaseWithoutCodeScanner');
+const { addReleaseExclusions, RELEASE_MANIFEST } = require('./withReleaseWithoutCodeScanner');
 
 const BUILD_GRADLE = `apply plugin: "com.android.application"
 
@@ -39,4 +39,10 @@ test('running prebuild twice adds the block once', () => {
 
 test('an unrecognised build.gradle fails the build instead of shipping the scanner', () => {
   assert.throws(() => addReleaseExclusions('android { }\n'), /update the plugin/);
+});
+
+test('the release-only manifest removes the scanner-UI download request and nothing else', () => {
+  assert.ok(RELEASE_MANIFEST.includes('<meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" tools:node="remove" />'));
+  assert.equal(RELEASE_MANIFEST.split('tools:node=').length - 1, 1, 'removes exactly one entry');
+  assert.ok(RELEASE_MANIFEST.includes('xmlns:tools="http://schemas.android.com/tools"'));
 });
