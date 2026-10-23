@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "contract:check": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test \"src/**/*.test.ts\"",
+    "test": "node --test \"src/**/*.test.ts\" \"plugins/*.test.js\"",
     "test:parser": "node --test \"src/features/search/understanding/*.test.ts\""
   },
   "dependencies": {

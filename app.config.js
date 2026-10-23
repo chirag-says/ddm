@@ -49,6 +49,9 @@ const config = {
   slug: 'dealdirect-mobile',
   owner: 'chiragmtest',
   version: '0.2.0',
+  // Portrait is the intent. iOS applies it as written. On Android it is applied
+  // at runtime on phones only (plugins/withPortraitOnPhones.js): Android 16
+  // ignores orientation locks on large screens, and Play flags the manifest one.
   orientation: 'portrait',
   scheme: 'dealdirect',
   userInterfaceStyle: 'automatic',
@@ -174,6 +177,10 @@ const config = {
     // Release size optimizations are applied via a local config plugin so they
     // survive every `expo prebuild`/EAS build.
     './plugins/withAndroidSizeOptimizations',
+    // Phones portrait at runtime; no manifest lock (Android 16 large screens).
+    './plugins/withPortraitOnPhones',
+    // Release builds without the dev launcher's QR scanner (debug-only code).
+    './plugins/withReleaseWithoutCodeScanner',
     'expo-router',
     'expo-secure-store',
     'expo-font',

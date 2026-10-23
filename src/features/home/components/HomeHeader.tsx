@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image as ExpoImage } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -101,8 +101,6 @@ export const SEARCH_PIN_WINDOW = 10;
  */
 const SEARCH_ROW_PX = HERO_SEARCH_PILL_PX + HERO_BOTTOM_PX;
 
-const FOCUSED_HEIGHT = Dimensions.get('window').height;
-
 /** The wordmark asset is 308×82; the reference renders it 258 wide. */
 const LOGO_WIDTH_PX = 258;
 const LOGO_HEIGHT_PX = (LOGO_WIDTH_PX * 82) / 308;
@@ -128,6 +126,9 @@ export function HomeHeader({
   const mockPx = useMockScale();
   const hero = useHeroScheme();
   const theme = useTheme();
+  // Read live, not once at import: on a large screen the app rotates, and a
+  // height captured at launch would leave the focused search short or tall.
+  const { height: windowHeight } = useWindowDimensions();
 
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -147,7 +148,7 @@ export function HomeHeader({
   const searchRow = mockPx(SEARCH_ROW_PX);
 
   const searchRowStyle = useAnimatedStyle(() => {
-    if (searchFocused) return { height: FOCUSED_HEIGHT, opacity: 1 };
+    if (searchFocused) return { height: windowHeight, opacity: 1 };
     if (!armed) return { height: 0, opacity: 0 };
 
     const progress = interpolate(
@@ -163,7 +164,7 @@ export function HomeHeader({
       height: progress > 0 ? searchRow : 0,
       opacity: progress,
     };
-  }, [pinOffset, armed, searchFocused, searchRow]);
+  }, [pinOffset, armed, searchFocused, searchRow, windowHeight]);
 
   const control = {
     width: mockPx(60),
