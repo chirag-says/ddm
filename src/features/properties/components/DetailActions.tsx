@@ -77,13 +77,18 @@ export interface DetailActionsProps {
   onHeightChange?: (height: number) => void;
 }
 
-export function DetailActions({
-  interest,
-  property,
-  remaining,
-  onRequestEnquire,
+/**
+ * The bar itself: surface, top hairline, upward shadow, safe-area padding, and
+ * the height report. Shared by the buyer's bar and the owner's so the two
+ * cannot drift apart in geometry, which the scroll view above measures.
+ */
+function ActionBarFrame({
   onHeightChange,
-}: DetailActionsProps) {
+  children,
+}: {
+  onHeightChange?: (height: number) => void;
+  children: React.ReactNode;
+}) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
@@ -91,15 +96,6 @@ export function DetailActions({
     (event: LayoutChangeEvent) => onHeightChange?.(event.nativeEvent.layout.height),
     [onHeightChange]
   );
-
-  const outOfSlots = !interest.isInterested && remaining === 0;
-  const busy = interest.isPending || interest.isLoading;
-
-  const handlePress = useCallback(() => {
-    // Withdrawing goes straight through; enquiring goes through the sheet.
-    if (interest.isInterested) interest.toggle();
-    else onRequestEnquire();
-  }, [interest, onRequestEnquire]);
 
   return (
     <View
@@ -123,6 +119,31 @@ export function DetailActions({
         elevation: 16,
       }}
     >
+      {children}
+    </View>
+  );
+}
+
+export function DetailActions({
+  interest,
+  property,
+  remaining,
+  onRequestEnquire,
+  onHeightChange,
+}: DetailActionsProps) {
+  const theme = useTheme();
+
+  const outOfSlots = !interest.isInterested && remaining === 0;
+  const busy = interest.isPending || interest.isLoading;
+
+  const handlePress = useCallback(() => {
+    // Withdrawing goes straight through; enquiring goes through the sheet.
+    if (interest.isInterested) interest.toggle();
+    else onRequestEnquire();
+  }, [interest, onRequestEnquire]);
+
+  return (
+    <ActionBarFrame onHeightChange={onHeightChange}>
       <SupportingLine
         error={interest.error}
         interested={interest.isInterested}
@@ -158,7 +179,47 @@ export function DetailActions({
           />
         </View>
       </View>
-    </View>
+    </ActionBarFrame>
+  );
+}
+
+export interface DetailOwnerActionsProps {
+  /** Opens the edit form for this listing. */
+  onEdit: () => void;
+  /** Opens the owner's enquiries. */
+  onViewEnquiries: () => void;
+  onHeightChange?: (height: number) => void;
+}
+
+/**
+ * The bar an owner sees on their own listing.
+ *
+ * "I'm interested" and "Save" are a buyer's controls. Offered to the owner they
+ * were a trap: the server refuses the enquiry ("You cannot express interest in
+ * your own property") only after the press, and saving your own listing means
+ * nothing. The page is still worth opening — it is how the listing looks to a
+ * buyer — so the bar says so and offers the two things an owner actually does
+ * from here: change the listing, and see who has asked about it.
+ */
+export function DetailOwnerActions({
+  onEdit,
+  onViewEnquiries,
+  onHeightChange,
+}: DetailOwnerActionsProps) {
+  return (
+    <ActionBarFrame onHeightChange={onHeightChange}>
+      <Text variant="caption" tone="muted" className="mb-sm">
+        This is your listing, shown as buyers see it.
+      </Text>
+      <View className="flex-row items-stretch" style={{ gap: spacing.sm }}>
+        <View className="flex-1">
+          <Button label="View enquiries" variant="secondary" fullWidth onPress={onViewEnquiries} />
+        </View>
+        <View className="flex-1">
+          <Button label="Edit listing" fullWidth onPress={onEdit} />
+        </View>
+      </View>
+    </ActionBarFrame>
   );
 }
 

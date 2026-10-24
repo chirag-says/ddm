@@ -103,11 +103,6 @@ const CANONICAL_FALLBACK: readonly TaxonomyCategory[] = [
       'Commercial Building / Floor',
     ],
   },
-  {
-    id: 'fallback:Land & Plots',
-    name: 'Land & Plots',
-    types: ['Residential Plot', 'Commercial Land', 'Industrial Land', 'Agricultural Land'],
-  },
 ];
 
 export interface TaxonomyCategory {

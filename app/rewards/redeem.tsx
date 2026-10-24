@@ -184,7 +184,12 @@ function RedeemScreen() {
               // A fresh session every time. The SSO token is single-use, so a
               // cached document would replay a spent credential.
               cacheEnabled={false}
-              incognito
+              // NEVER `incognito`. On Android it calls
+              // CookieManager.removeAllCookies(), and that is the same jar the
+              // app's own API calls use: opening this screen deleted the
+              // DealDirect session cookie and the next request signed the user
+              // out. Hubble's cookies do not outlive the account either way,
+              // because logout clears the whole jar (`clearSessionCookie`).
               onShouldStartLoadWithRequest={handleNavigation}
               onMessage={handleMessage}
               onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}

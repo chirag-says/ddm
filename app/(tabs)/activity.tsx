@@ -2,7 +2,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { SignInPrompt } from '@/auth';
 import { DealRow, useMyDeals } from '@/features/deals';
@@ -37,10 +45,10 @@ import type { DealListRow } from '@/types/backend/deal';
 import {
   EmptyState,
   ErrorState,
+  PressableScale,
   Screen,
   ScreenHeader,
   SectionLabel,
-  Segmented,
   Skeleton,
   Text,
   useToast,
@@ -55,8 +63,8 @@ import {
  * It used to hold one list and one set of alerts, which described a storage
  * bucket rather than a person's situation. Somebody looking for a home has
  * four things going at once: the flats they are turning over, the owners they
- * have written to, the searches they are watching, and the units they have put
- * money or a name against. Those were spread across a tab, a profile link and a
+ * have written to, the searches they are watching, and the builder units they
+ * have enquired about. Those were spread across a tab, a profile link and a
  * deep-linked screen, so nowhere in the app answered "where am I up to".
  *
  * Four segments now, in the order the user moves through them:
@@ -64,7 +72,7 @@ import {
  *   Shortlist   considering       device-local, free, unlimited
  *   Deals       in motion         server, both roles, enquiries capped at 5
  *   Searches    watching          server, alerting
- *   Bookings    committed         server, money or a callback
+ *   Enquiries   waiting           server, builder units, a callback
  *
  * ---------------------------------------------------------------------------
  * SHORTLIST AND DEALS ARE TWO LISTS, AND THE SPLIT IS THE WHOLE POINT
@@ -106,27 +114,142 @@ export default function ActivityScreen() {
   const requested = SEGMENTS.find((option) => option.value === params.segment)?.value;
 
   const [segment, setSegment] = useState<Segment>(requested ?? 'shortlist');
+  const counts = useActivityCounts();
 
   return (
     <Screen edges={['top']}>
       {/* A root tab has nowhere to go back TO, so no back affordance. */}
       <ScreenHeader title="Activity" showBack={false} tight />
 
-      <View style={{ paddingHorizontal: screenPadding, paddingVertical: spacing.md }}>
-        <Segmented options={SEGMENTS} value={segment} onChange={setSegment} />
-      </View>
+      {/*
+        Text tabs on a rule, not a boxed segmented control. Four filled
+        segments in a well was the heaviest thing on the screen and sat
+        directly on the title; underlined words with their counts beside them
+        weigh almost nothing, and the count is where the three lists not on
+        screen are still accounted for.
+      */}
+      <ActivityTabs options={SEGMENTS} counts={counts} value={segment} onChange={setSegment} />
 
-      {segment === 'shortlist' ? (
-        <ShortlistList onOpenSearch={() => router.push('/(tabs)/search')} />
-      ) : segment === 'enquiries' ? (
-        <DealsList onOpenSearch={() => router.push('/(tabs)/search')} />
-      ) : segment === 'searches' ? (
-        <SearchesList />
-      ) : (
-        <BookingsList />
-      )}
+      {/* Air between the strip and whichever list is showing. */}
+      <View style={{ flex: 1, paddingTop: spacing.lg }}>
+        {segment === 'shortlist' ? (
+          <ShortlistList onOpenSearch={() => router.push('/(tabs)/search')} />
+        ) : segment === 'enquiries' ? (
+          <DealsList onOpenSearch={() => router.push('/(tabs)/search')} />
+        ) : segment === 'searches' ? (
+          <SearchesList />
+        ) : (
+          <BookingsList />
+        )}
+      </View>
     </Screen>
   );
+}
+
+/**
+ * The strip: a word per list, its count beside it, an accent rule under the
+ * one showing, a hairline under all of them. Scrolls sideways on a narrow
+ * screen rather than squeezing the labels. Counts are omitted while loading
+ * or at zero, so a tab never reads "Searches 0" at a signed-out user.
+ */
+function ActivityTabs({
+  options,
+  counts,
+  value,
+  onChange,
+}: {
+  options: readonly { label: string; value: Segment }[];
+  counts: Partial<Record<Segment, number>>;
+  value: Segment;
+  onChange: (value: Segment) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        marginTop: spacing.sm,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.colors.border,
+      }}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityRole="tablist"
+        // `lg`, not `xl`: with four labels and two counts, the wider gap put
+        // the last tab a few points past a 360pt screen's edge.
+        contentContainerStyle={{ paddingHorizontal: screenPadding, gap: spacing.lg }}
+      >
+        {options.map((option) => {
+          const selected = option.value === value;
+          const count = counts[option.value];
+          return (
+            <PressableScale
+              key={option.value}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={count ? `${option.label}, ${count}` : option.label}
+              hitSlop={gesture.hitSlop}
+              onPress={() => onChange(option.value)}
+              activeScale={0.98}
+              style={{ paddingTop: spacing.sm }}
+            >
+              <View className="flex-row items-baseline" style={{ paddingBottom: spacing.md }}>
+                <Text
+                  variant={selected ? 'bodyEmphasis' : 'callout'}
+                  tone={selected ? 'primary' : 'secondary'}
+                  numberOfLines={1}
+                >
+                  {option.label}
+                </Text>
+                {count ? (
+                  <Text
+                    variant="footnote"
+                    tone={selected ? 'accent' : 'muted'}
+                    className="ml-xs"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    {count}
+                  </Text>
+                ) : null}
+              </View>
+              <View
+                style={{
+                  height: 2,
+                  borderRadius: 1,
+                  backgroundColor: selected ? theme.colors.accent : 'transparent',
+                }}
+              />
+            </PressableScale>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * How many things sit in each list, for the tab strip.
+ *
+ * Reads the four lists the segments read, so it costs no request a visit to
+ * the tab would not make anyway (TanStack dedupes by key). A count that is
+ * still loading is left out, and a guest gets only the shortlist, which is
+ * the one list a guest has.
+ */
+function useActivityCounts(): Partial<Record<Segment, number>> {
+  const shortlist = useShortlistList();
+  const deals = useMyDeals();
+  const searches = useSavedSearches();
+  const bookings = useMyBookings();
+
+  return {
+    shortlist: shortlist.isLoading ? undefined : shortlist.total,
+    enquiries:
+      deals.requiresAuth || deals.isLoading ? undefined : (deals.total ?? deals.deals.length),
+    searches: searches.requiresAuth || searches.isLoading ? undefined : searches.items.length,
+    bookings: !bookings.signedIn || bookings.isLoading ? undefined : bookings.bookings.length,
+  };
 }
 
 /**
@@ -386,12 +509,12 @@ function ShortlistToolbar({
 }
 
 /**
- * Bookings and enquiries against builder units.
+ * Enquiries about builder units.
  *
  * The same rows `/projects/bookings` renders, from the same hook — this
  * segment is where they belong, and that screen stays reachable because it is
  * deep-linked from notifications. `BookingRow` is shared rather than copied so
- * the enquiry-versus-booking distinction has one implementation.
+ * the status wording has one implementation.
  */
 function BookingsList() {
   const router = useRouter();
@@ -414,19 +537,19 @@ function BookingsList() {
     return (
       <SignInPrompt
         icon="calendar-outline"
-        title="Your bookings"
-        description="Units you have booked or enquired about appear here."
+        title="Your enquiries"
+        description="Builder units you have enquired about appear here."
       />
     );
   }
 
-  if (error) return <ErrorState title="Could not load your bookings" onRetry={refresh} />;
+  if (error) return <ErrorState title="Could not load your enquiries" onRetry={refresh} />;
 
   if (bookings.length === 0) {
     return (
       <EmptyState
-        title="No bookings yet"
-        description="Book a unit or send an enquiry from any project to see it here."
+        title="No enquiries yet"
+        description="Enquire about a unit in any builder project to see it here."
         actionLabel="Browse projects"
         onAction={() => router.push('/projects')}
       />
@@ -441,8 +564,16 @@ function BookingsList() {
         paddingHorizontal: screenPadding,
         paddingBottom: tabBarClearance,
       }}
+      // The rows touched before: no separator and a row with its margin
+      // stripped. Same separator as the other three segments.
+      ItemSeparatorComponent={RowSeparator}
       refreshing={isRefreshing}
       onRefresh={refresh}
+      ListFooterComponent={
+        <Text variant="caption" tone="muted" className="mt-lg text-center">
+          Tap an enquiry to see what you sent, or to withdraw it.
+        </Text>
+      }
       renderItem={({ item }) => (
         <BookingRow
           booking={item}
@@ -468,7 +599,10 @@ const SEGMENTS = [
   // narrower than the row. See `features/deals`.
   { label: 'Deals', value: 'enquiries' as const },
   { label: 'Searches', value: 'searches' as const },
-  { label: 'Bookings', value: 'bookings' as const },
+  // Labelled for what it holds, builder-unit enquiries, since booking stopped
+  // taking money (2026-10-19). The value stays `bookings` so existing links
+  // keep landing here.
+  { label: 'Enquiries', value: 'bookings' as const },
 ];
 
 /**

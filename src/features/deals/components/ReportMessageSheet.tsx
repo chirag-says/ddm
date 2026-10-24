@@ -18,7 +18,7 @@ import { Button, Chip, Input, Sheet, Text } from '@/ui';
  */
 
 const PRESETS = [
-  'Asking me to pay outside DealDirect',
+  'Asking me for money or an advance',
   'Asking for a deposit before a visit',
   'Threatening or abusive',
   'Not the owner of this property',

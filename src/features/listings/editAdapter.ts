@@ -1,7 +1,8 @@
 import type { Property } from '@/types/backend/property';
-import { EMPTY_LISTING_FORM, type CategorizedPhoto, type ListingFormValues } from './types';
+import { EMPTY_LISTING_FORM, type CategorizedPhoto, type ListingFormValues } from './types.ts';
 
 const asString = (value: unknown): string => (value === undefined || value === null ? '' : String(value));
+const positiveString = (value: unknown): string => (Number(value) > 0 ? String(value) : '');
 
 export function propertyToFormValues(property: Property): ListingFormValues {
   /*
@@ -29,18 +30,29 @@ export function propertyToFormValues(property: Property): ListingFormValues {
     price: asString(property.price),
     negotiable: property.negotiable ?? false,
     deposit: asString(property.deposit),
-    maintenance: asString(property.maintenance),
+    // The website stores an inclusive rent as maintenance "Included" (a string
+    // in a Mixed field); that is a flag, not an amount for the number input.
+    maintenance: property.maintenance === 'Included' ? '' : asString(property.maintenance),
+    maintenanceIncluded:
+      property.maintenanceIncluded ?? (property.maintenance === 'Included' || !property.maintenance),
     securityDeposit: asString(property.securityDeposit),
+    bookingAmount: asString(property.bookingAmount),
+    gstApplicable: property.gstApplicable === 'Yes',
 
-    totalSqft: asString(property.area?.totalSqft),
-    carpetSqft: asString(property.area?.carpetSqft),
-    builtUpSqft: asString(property.area?.builtUpSqft),
-    superBuiltUpSqft: asString(property.area?.superBuiltUpSqft),
-    plotSqft: asString(property.area?.plotSqft),
+    // A stored 0 is "not given", not a measurement; reading it back as "0" made
+    // the review show "0 super built-up" and let 0 win the ₹/sqft calculation.
+    totalSqft: positiveString(property.area?.totalSqft),
+    carpetSqft: positiveString(property.area?.carpetSqft),
+    builtUpSqft: positiveString(property.area?.builtUpSqft),
+    superBuiltUpSqft: positiveString(property.area?.superBuiltUpSqft),
+    plotSqft: positiveString(property.area?.plotSqft),
     // `area.pricePerSqft` is intentionally not read back: it is derived on
     // submit, so round-tripping it would let a stale value survive a price
     // change.
 
+    // The BHK picker and the review both read `bhkType`; filling only `bhk` left
+    // the picker blank on every edit.
+    bhkType: property.bhk ?? '',
     bhk: property.bhk ?? '',
     bedrooms: asString(property.bedrooms),
     bathrooms: asString(property.bathrooms),
@@ -49,6 +61,12 @@ export function propertyToFormValues(property: Property): ListingFormValues {
     totalFloors: property.totalFloors ?? '',
     facing: property.facing ?? '',
     constructionStatus: property.constructionStatus ?? '',
+    // Empty rather than the new-listing defaults when the listing never had
+    // them, so an edit does not assert "New" / "Family" / "No" on the owner's
+    // behalf. The website stores age under both names.
+    propertyAge: property.propertyAge ?? property.ageOfProperty ?? '',
+    allowedFor: property.allowedFor ?? '',
+    petFriendly: property.petFriendly ?? '',
     servantRoom: property.extras?.servantRoom ?? false,
     poojaRoom: property.extras?.poojaRoom ?? false,
     studyRoom: property.extras?.studyRoom ?? false,

@@ -24,12 +24,11 @@ import {
 /**
  * Rewards: balance, tier, referrals and activity.
  *
- * REDEMPTION IS DELIBERATELY ABSENT. The in-house store/redeem endpoints are
- * deleted backend-side, and the website's only redemption path is the Hubble
- * SDK iframe, which has no native equivalent. Mobile redemption is its own
- * workstream with its own approval (HANDOFF §9.1 D3) because real money moves
- * through it. Until then this screen sends the user to the website rather
- * than pretending a redemption path exists here.
+ * Redemption is not on this screen: it happens in the Hubble store at
+ * `/rewards/redeem`, which hosts Hubble's gift-card SDK in a WebView and is
+ * reached from the Redeem card below. The in-house store/redeem endpoints are
+ * deleted backend-side, so Hubble is the only redemption path, here and on the
+ * website.
  */
 export default function RewardsScreen() {
   const { status } = useAuth();
@@ -229,9 +228,9 @@ function TierProgressCard({ progress }: { progress: NextTierProgress }) {
 }
 
 /**
- * Redemption lives on the website. Stating that plainly, with a way to get
- * there, is better than a store section that silently renders nothing —
- * which is what shipped before, once the backend routes were removed.
+ * The way into the Hubble store (`/rewards/redeem`), where points are spent on
+ * gift cards and vouchers without leaving the app. A plain card with one
+ * button: the store itself, its catalogue and its checkout belong to Hubble.
  */
 function RedeemCard() {
   const router = useRouter();

@@ -161,8 +161,9 @@ export interface ShortlistListState {
  * the next cold start work offline and what keeps Home's count honest.
  */
 export function useShortlistList(): ShortlistListState {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const signedIn = status === 'authenticated';
+  const userId = user?._id;
   const local = useLocalShortlist();
 
   const query = useQuery({
@@ -177,9 +178,12 @@ export function useShortlistList(): ShortlistListState {
   // it for retries and refetches, and writing storage from inside it would
   // make the cache a function of how many times a request was attempted.
   useEffect(() => {
-    if (!signedIn || !query.data) return;
+    if (!signedIn || !userId || !query.data) return;
     setLocalShortlist(query.data.items.map(itemToStoredEntry));
-  }, [signedIn, query.data]);
+    // Records whose list this is, so it is never shown to a later guest or
+    // merged into another account (see useShortlistSync).
+    prefsStorage.set(PREF_KEYS.shortlistMirrorOf, userId);
+  }, [signedIn, userId, query.data]);
 
   const localItems = useMemo(() => local.map(localEntryToItem), [local]);
 
@@ -217,7 +221,7 @@ export interface ToggleShortlistResult {
  * second code path for the signed-out case, which is what stops it rotting.
  */
 export function useToggleShortlist(): ToggleShortlistResult {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const queryClient = useQueryClient();
   const signedIn = status === 'authenticated';
 
@@ -237,6 +241,8 @@ export function useToggleShortlist(): ToggleShortlistResult {
       const saved = toggleLocalShortlist(property);
 
       if (!signedIn) return saved;
+      // The local list now carries this account's saves; mark it as theirs.
+      if (user?._id) prefsStorage.set(PREF_KEYS.shortlistMirrorOf, user._id);
 
       mutate(
         { id: property.id, saved, note: previous?.note },
@@ -253,7 +259,7 @@ export function useToggleShortlist(): ToggleShortlistResult {
 
       return saved;
     },
-    [signedIn, mutate]
+    [signedIn, user?._id, mutate]
   );
 
   return { toggle, isPending: mutation.isPending };
@@ -389,11 +395,27 @@ export function useShortlistSync(): void {
   const attempted = useRef<string | null>(null);
 
   useEffect(() => {
+    const mirrorOf = prefsStorage.getString(PREF_KEYS.shortlistMirrorOf) ?? null;
+
+    // A guest holding an account's mirrored list: that account signed out (or
+    // its session ended while the app was closed). Its saves are not this
+    // guest's to see, so the device starts clean.
+    if (status === 'guest' && mirrorOf) {
+      clearLocalShortlist();
+      prefsStorage.remove(PREF_KEYS.shortlistMirrorOf);
+      return;
+    }
+
     const userId = status === 'authenticated' ? user?._id : null;
     if (!userId || attempted.current === userId) return;
 
     const mergedFor = readMergedFor(prefsStorage.getString(PREF_KEYS.shortlistMergedFor));
-    const decision = decideMerge({ userId, localIds: localShortlistIds(), mergedFor });
+    const decision = decideMerge({ userId, localIds: localShortlistIds(), mergedFor, mirrorOf });
+    if (decision.skipReason === 'another-account') {
+      clearLocalShortlist();
+      prefsStorage.remove(PREF_KEYS.shortlistMirrorOf);
+      return;
+    }
     if (!decision.shouldMerge) return;
 
     // Guarded in memory as well as in storage: the effect can re-run before

@@ -18,7 +18,9 @@ import { Text } from './Text';
  *
  * Filled rather than outlined. A page of outlined pills is a page of borders,
  * and the surface ramp already separates a recessed fill from the page behind
- * it without one.
+ * it without one. (The one place that put tags straight on the page colour,
+ * the property detail screen, now lists its facts instead; see
+ * `DetailIconList`.)
  */
 
 export interface TagProps {

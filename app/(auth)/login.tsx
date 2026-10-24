@@ -17,7 +17,7 @@ import {
   type LoginValues,
 } from '@/auth';
 import { gesture, useTheme } from '@/theme';
-import { Button, Input, Text } from '@/ui';
+import { Button, Input, PasswordInput, Text } from '@/ui';
 
 /**
  * Login.
@@ -40,7 +40,6 @@ export default function LoginScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingLink, setPendingLink] = useState<{ email: string; idToken: string } | null>(null);
   const theme = useTheme();
-  const [showPassword, setShowPassword] = useState(false);
 
   const { control, handleSubmit, formState, getValues } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -162,28 +161,10 @@ export default function LoginScreen() {
         control={control}
         name="password"
         render={({ field, fieldState }) => (
-          <Input
+          <PasswordInput
             label="Password"
             placeholder="Your password"
             leading={<Ionicons name="lock-closed-outline" size={18} color={theme.colors.textMuted} />}
-            /* Show/hide, because a password typed on a phone keyboard is
-               mistyped often enough that seeing it is the fix, and the
-               field is the one place a user cannot check what they wrote. */
-            trailing={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                hitSlop={gesture.hitSlop}
-                onPress={() => setShowPassword((v) => !v)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={theme.colors.textMuted}
-                />
-              </Pressable>
-            }
-            secureTextEntry={!showPassword}
             autoCapitalize="none"
             autoComplete="current-password"
             textContentType="password"

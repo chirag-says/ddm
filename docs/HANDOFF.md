@@ -47,7 +47,7 @@ each minus one map-related item still blocked on the M4 dev-client rebuild,
 | M8 | Owner mode: listings and uploads | **done** (§2.10) |
 | M9 | Leads and analytics | **done** (§2.11) |
 | M10 | Agreements | **withdrawn from the product**, not merely skipped — see audit §4.2 |
-| M11 | Projects, units, campaigns, bookings | **done** (§2.12) |
+| M11 | Projects, units, campaigns, bookings | **done** (§2.12); group buy and paid booking **removed 2026-10-19**, enquiries only (§16) |
 | M12 | Deep linking, offline, performance | **core pieces done** (§2.13) |
 | M13 | Push notifications | **client-side/local done, server push still blocked** (§2.14) |
 | M14 | Store readiness and release | not started |
@@ -442,6 +442,11 @@ the M4 map (§5.1). Neither works in the JS-only `--tunnel` bundle.
   so revisiting an already-read lead does not re-fire the mutation.
 
 ### 2.12 Projects, units, campaigns, bookings (M11, done)
+
+> **Superseded in part, 2026-10-19 (§16).** DealDirect takes no money from
+> users. Group buy (`campaigns.ts`, `app/projects/campaign/[campaignId].tsx`)
+> is deleted, and bookings are enquiry-only: no token, no payment screen, no
+> payment proof. The notes below on campaigns and payment uploads are history.
 
 `features/projects/*` (extended: `projectDetail.ts`, `campaigns.ts`,
 `bookings.ts`, `components/ProjectList.tsx`, `components/ProjectListCard.tsx`
@@ -1212,7 +1217,8 @@ token handoff, the no-Origin CSRF constraint from `API_CONTRACT.md` §1.2)
 gets its own plan document and its own approval before any code. What this
 plan does do to the rewards screen is display-only honesty (W3 below).
 
-**D4 — Group buy: HELD.** Group buy is still being worked out on the website
+**D4 — Group buy: HELD.** *(Closed 2026-10-19: group buy was removed from the
+product, app and backend. See §16.)* Group buy is still being worked out on the website
 itself. No campaign feature work (offer display, join/exit changes, campaign
 payment-proof changes) until the website settles. Existing campaign screens
 stay as they are. The parity findings are parked in §9.5 so they are not lost.
@@ -1324,7 +1330,7 @@ the standing caveat in §2.14).
   (mount the collections rails, one `COLLECTIONS.map()`; Sentry still blocked
   on a DSN from Chirag), then M22/M14 store readiness last.
 
-**Held / blocked (unchanged owners):** group buy feature work (D4, §9.5);
+**Held / blocked (unchanged owners):** group buy feature work (D4, §9.5; removed outright 2026-10-19, §16);
 rewards redemption (D3, separate workstream); the map bundle (locator +
 location picker, blocked on the one dev-client rebuild covering all four
 pending native modules, §5.1); universal links (needs Apple Team ID + Android
@@ -1332,6 +1338,8 @@ signing SHA-256, §2.13); true server push (needs a backend change request,
 §2.14).
 
 ### 9.5 Parked group-buy findings (do not lose, do not build yet — D4)
+
+*Moot since 2026-10-19: group buy was removed (§16). Kept as history only.*
 
 - The campaign screen never shows the offer: no `discountPerBuyer`, no
   `buyerTargets.minBuyers/maxBuyers` progress, no `perks[]`
@@ -2735,3 +2743,31 @@ The gate above every other line is unchanged: nothing since Phase 1 has run on a
 device. `DEALDIRECT-MOBILE-PHASE2-QA-SCRIPT.md` plus the deal-room flows (propose,
 confirm, done by both, feedback, message with a lure, report, attest, review) are the
 pass to run first.
+
+## 16. 2026-10-19: builder units are enquiry-only, group buy removed
+
+Owner decision: DealDirect takes no money from users anywhere. The Hubble
+rewards store is unaffected (points are spent with Hubble, not paid to us).
+
+Backend contract after the change (`API_CONTRACT.md`, Projects vertical):
+`POST /bookings` always records an enquiry and returns no token amount;
+`GET /bookings/my` lists enquiries; `POST /bookings/:id/cancel` withdraws one
+from status `enquiry` only. `GET /bookings/payment-config`,
+`POST /bookings/:id/payment` and every `/campaigns/*` route are gone.
+
+What changed in the app:
+
+- Unit screen: one action, "Enquire about this unit". The paid booking
+  button, the token copy, the `BOOKING_NOT_CONFIGURED` refusal and the
+  group-buy section are gone. A guest's sign-in resume reopens the enquiry
+  sheet (`PendingIntent` kind `unit`, no booking variant).
+- `app/projects/booking/[bookingId].tsx` is the enquiry detail screen: what was
+  asked about, the details sent, status (Sent, Closed, Withdrawn; legacy
+  statuses from the paid flow read as Closed) and Withdraw.
+- "My bookings" is "My enquiries"; the Activity segment is labelled
+  Enquiries. Route paths and the segment value `bookings` are unchanged.
+- Deleted: the campaign screen and hooks, `config/features.ts`
+  (`GROUP_BUY_ENABLED`), the campaign and payment endpoints, query keys and
+  types, and the `groupBuy` rate-limit tier.
+- `src/features/projects/enquiriesOnly.test.ts` fails if the removed
+  endpoints or the paid-flow copy reappear in `src` or `app`.

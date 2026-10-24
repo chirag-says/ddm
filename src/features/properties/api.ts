@@ -7,9 +7,9 @@
 
 import { call, normalizeSearchParams, propertiesEndpoints } from '@/api';
 import type { ObjectId } from '@/types/backend/common';
-import type { PropertySearchParams } from '@/types/backend/property';
-import { adaptProperty, adaptPropertyDetail } from './adapters';
-import type { PropertyDetail, PropertySummary } from './types';
+import type { Property, PropertySearchParams } from '@/types/backend/property';
+import { adaptProperty } from './adapters';
+import type { PropertySummary } from './types';
 
 /** Backend default is 12. Stated explicitly so paging maths never guesses. */
 export const SEARCH_PAGE_SIZE = 12;
@@ -65,13 +65,12 @@ export async function fetchPropertyPage(
  * but is not publicly viewable returns 404 rather than 403, so "hidden" and
  * "deleted" are indistinguishable from here. The screen says "no longer
  * available" for both, which is true either way.
+ *
+ * Returns the server's document as is. `usePropertyDetail` adapts it on read
+ * (`select`), so the cache stays valid across changes to the adapter.
  */
-export async function fetchPropertyDetail(
-  id: ObjectId,
-  signal?: AbortSignal
-): Promise<PropertyDetail> {
-  const property = await call(propertiesEndpoints.detail, { params: { id }, signal });
-  return adaptPropertyDetail(property);
+export async function fetchPropertyDetail(id: ObjectId, signal?: AbortSignal): Promise<Property> {
+  return call(propertiesEndpoints.detail, { params: { id }, signal });
 }
 
 /**

@@ -100,11 +100,11 @@ export function DetailOwner({ owner, ownerStats, onShowReviews }: DetailOwnerPro
             className="flex-row items-center rounded-full px-sm py-xs"
             style={{ backgroundColor: theme.colors.successMuted }}
             accessible
-            accessibilityLabel="Verified owner"
+            accessibilityLabel="Identity verified"
           >
             <Ionicons name="shield-checkmark" size={14} color={theme.colors.success} />
             <Text variant="caption" tone="success" className="ml-xs">
-              Verified owner
+              Identity verified
             </Text>
           </View>
         ) : null}

@@ -32,7 +32,7 @@ export const faqPage: ContentPage = {
               id: 'really-broker-free',
               question: 'Is Deal Direct really free from brokers?',
               answer:
-                'Yes. Listings pass through filters and a one-post-per-user rule, so the people posting are individuals rather than agencies.',
+                'Yes. Listings pass through filters and a one-post-per-user rule, which keeps bulk agency uploads off the site.',
             },
           ],
         },
@@ -51,7 +51,7 @@ export const faqPage: ContentPage = {
               id: 'one-property-only',
               question: 'Why can I only post one property?',
               answer:
-                'One active post per user keeps the site free of duplicates and bulk broker uploads. It also means every listing you see came from a real person with a real property.',
+                'One active post per user keeps the site free of duplicates and bulk broker uploads.',
             },
             {
               id: 'edit-or-delete',
@@ -82,7 +82,7 @@ export const faqPage: ContentPage = {
               id: 'how-to-earn',
               question: 'How do I earn rewards on Deal Direct?',
               answer:
-                'Four ways: post a verified property, send a genuine enquiry on a listing, close a deal through the platform, or refer someone who signs up.',
+                'Four ways: post a property, send a genuine enquiry on a listing, close a deal through the platform, or refer someone who signs up.',
             },
             {
               id: 'how-to-refer',
@@ -94,7 +94,7 @@ export const faqPage: ContentPage = {
               id: 'point-value',
               question: 'What can I do with my reward points?',
               answer:
-                'Redeem them for partner vouchers, premium listing boosts, or cashback. Your dashboard lists the current options.',
+                'Redeem them for gift cards in the rewards store. Your dashboard lists the current options.',
             },
           ],
         },

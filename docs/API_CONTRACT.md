@@ -102,6 +102,9 @@ POST /chat/message/send       POST /chat/conversation/start
 POST /contact                 POST /rewards/admin/adjust-points
 ```
 
+(2026-10-19: the two `/campaigns` routes in that list no longer exist; group
+buy was removed along with every other route that took money from users.)
+
 The app still builds no CSRF plumbing, and that is still correct — but for a
 different reason than "nothing enforces it." `requireCsrf` returns `next()`
 immediately when the request carries **no `Origin` header**
@@ -148,7 +151,7 @@ response as a failure. Branch on the declared envelope, not on a guess.
 | **auth (in-memory, second limiter)** | **10 / 15 min, successes ARE counted, one shared budget** | **`/users/register`, `/register-direct`, `/verify-otp`, `/resend-otp`, `/login`, `/forgot-password`, `/reset-password`** |
 | search | 20 / min | `/properties/search`, `/suggestions`, `/filter` |
 | transactional | 20 / hour | `/agreements/generate` |
-| ~~group buy~~ | ~~10 / 15 min~~ | **does not apply — see below** |
+| ~~group buy~~ | ~~10 / 15 min~~ | **removed 2026-10-19 with the `/campaigns` routes** |
 
 Corrected 2026-08-09, two rows:
 
@@ -161,11 +164,10 @@ it is the stricter of the two. A test session that registers, resends an OTP
 twice, verifies and logs in three times has already spent 7 of 10. It returns
 429 with `retryAfter` in the body, which `src/api/errors.ts` reads.
 
-**The group-buy limiter does not reach campaigns.** It is mounted at
-`/api/group-buy/projects/:id/join` and `.../exit` (`backend/server.js:705-706`).
-Campaigns are mounted at `/api/campaigns` (`:880`). No `/api/group-buy` path
-exists anywhere in the app, so campaign join/exit fall under the global tier
-only.
+**Group buy is gone.** The `/campaigns` routes were removed on 2026-10-19
+(DealDirect takes no money from users), and the app's `groupBuy` rate-limit
+tier went with them. Before that, the group-buy limiter never reached them
+anyway: it was mounted at `/api/group-buy/...`, a path the app never called.
 
 Keyed on **IP, not user**. On Indian carrier NAT many subscribers share one
 address, so these budgets are effectively shared between unrelated users. The
@@ -427,16 +429,15 @@ defect F1 in HANDOFF §9.3 and shows every user zero points.
 | GET | `/projects/builder/:builderId` | opt | data | not paginated |
 | GET | `/unit-types/project/:projectId` | opt | data | sorted **oldest-first** |
 | GET | `/unit-types/:id` | opt | data | |
-| GET | `/campaigns/unit-type/:unitTypeId` | pub | data | |
-| GET | `/campaigns/project/:projectId` | pub | data | |
-| GET | `/campaigns/:id` | pub | data | |
-| POST | `/campaigns/:id/join` | user | data | 10/15 min; 201 with `memberId` |
-| POST | `/campaigns/:id/exit` | user | ok | 10/15 min |
-| POST | `/campaigns/:id/payment-proof` | user | ok | multipart `paymentProof`; no record echoed back |
-| POST | `/bookings` | user | data | login required; needs `projectId, unitTypeId, clientName, clientPhone` |
-| POST | `/bookings/:id/payment` | user | keyed | multipart: file field `screenshot`, text field **`utrNumber`** (not `utr` — defect F5). Backend accepts **either** one (`bookingController.js:164-166`). `payment` on the model is `{ utrNumber, screenshotUrl, submittedAt, verifiedAt, verifiedBy, status: pending\|submitted\|verified\|rejected, rejectionReason }` (`ProjectBooking.js:80-94`) — there is no `utr`, no `verified` boolean (defect F6). |
-| GET | `/bookings/my` | user | data | |
-| GET | `/bookings/payment-config` | user | data | UPI id + QR |
+| POST | `/bookings` | user | data | Records an **enquiry**, always; any `intent` is ignored and nothing is charged. Body `projectId, unitTypeId, clientName, clientPhone, clientEmail?, notes?`. 201 → `data: { bookingId, status: 'enquiry', source: 'enquiry' }`, no token amount. Refusals: 400 validation, 404, 400 `NO_INVENTORY`, 409 `DUPLICATE_ENQUIRY`. |
+| GET | `/bookings/my` | user | data | The user's enquiries. New records have no `payment` field; an older one may, and the app ignores it. |
+| POST | `/bookings/:id/cancel` | user | data | Withdraw an enquiry. Only from status `enquiry`; 200 `{ message: 'Enquiry withdrawn.', data: { status: 'cancelled', previousStatus } }`, else 400 `NOT_CANCELLABLE`. |
+
+**Removed 2026-10-19** (DealDirect takes no money from users; builder units
+are enquiry-only): `GET /bookings/payment-config`, `POST /bookings/:id/payment`,
+and every `/campaigns/*` route (group buy: list, detail, join, exit,
+payment-proof). The app no longer declares any of them, and
+`src/features/projects/enquiriesOnly.test.ts` fails if one comes back.
 
 `attachAdminIfPresent` on the `opt` routes only widens visibility for an admin
 session. The app never holds one, so it always sees the active-only view.

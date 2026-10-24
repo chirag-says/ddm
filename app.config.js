@@ -48,7 +48,10 @@ const config = {
   name: 'DealDirect',
   slug: 'dealdirect-mobile',
   owner: 'chiragmtest',
-  version: '0.1.0',
+  version: '0.2.0',
+  // Portrait is the intent. iOS applies it as written. On Android it is applied
+  // at runtime on phones only (plugins/withPortraitOnPhones.js): Android 16
+  // ignores orientation locks on large screens, and Play flags the manifest one.
   orientation: 'portrait',
   scheme: 'dealdirect',
   userInterfaceStyle: 'automatic',
@@ -99,6 +102,21 @@ const config = {
   android: {
     package: 'in.dealdirect.mobile',
     edgeToEdgeEnabled: true,
+    // Off: the persisted query cache (profile, leads carrying buyers' names and
+    // phone numbers) lives in plain MMKV storage and would otherwise go to the
+    // user's Google Drive backup and be restored onto other devices. The
+    // session cookie is in SecureStore and was already excluded. Losing the
+    // cache on reinstall costs one refetch.
+    allowBackup: false,
+    // "Draw over other apps". Added by Expo's default template; nothing in this
+    // app or its libraries uses it, and it draws Play review questions.
+    //
+    // READ/WRITE_EXTERNAL_STORAGE are deliberately NOT blocked, although MobSF
+    // flags them: on Android 7-12 expo-image-picker requests both before the
+    // gallery opens, and needs WRITE before the camera opens on Android 7-9
+    // (ImagePickerModule.kt). Blocking them breaks photo upload on those phones.
+    // On Android 13+ they have no effect.
+    blockedPermissions: ['android.permission.SYSTEM_ALERT_WINDOW'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#FFFFFF',
@@ -159,6 +177,10 @@ const config = {
     // Release size optimizations are applied via a local config plugin so they
     // survive every `expo prebuild`/EAS build.
     './plugins/withAndroidSizeOptimizations',
+    // Phones portrait at runtime; no manifest lock (Android 16 large screens).
+    './plugins/withPortraitOnPhones',
+    // Release builds without the dev launcher's QR scanner (debug-only code).
+    './plugins/withReleaseWithoutCodeScanner',
     'expo-router',
     'expo-secure-store',
     'expo-font',
@@ -189,6 +211,9 @@ const config = {
       {
         photosPermission: 'DealDirect needs access to your photos to add listing images.',
         cameraPermission: 'DealDirect needs access to your camera to photograph a listing.',
+        // Photos only; the app never records video. `false` omits RECORD_AUDIO
+        // and blocks any other package from adding it back.
+        microphonePermission: false,
       },
     ],
     // Client-side only (M13): local/in-app notifications for new chat

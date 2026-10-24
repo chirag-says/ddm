@@ -3,8 +3,8 @@
  *
  * This vertical is the only way builder inventory surfaces anywhere in the app:
  * `/properties/search` excludes builder-posted listings, by design on the
- * backend. Projects, unit types, group-buy campaigns and bookings all hang off
- * this module.
+ * backend. Projects, unit types and the buyer's enquiries all hang off this
+ * module. Group buy and paid booking were removed on 2026-10-19.
  */
 
 export { adaptProject } from './adapters';
@@ -22,20 +22,7 @@ export {
   useUnitTypeDetail,
 } from './projectDetail';
 
-export {
-  useCampaignsForUnitType,
-  useCampaignDetail,
-  useJoinCampaign,
-  useExitCampaign,
-  useUploadPaymentProof,
-} from './campaigns';
-
-export {
-  useMyBookings,
-  useCreateBooking,
-  useCancelBooking,
-  usePaymentConfig,
-  useSubmitBookingPayment,
-} from './bookings';
+export { useMyBookings, useCreateBooking, useCancelBooking } from './bookings';
+export { enquiryStatus, type EnquiryStatusView } from './enquiryStatus';
 
 export { BookingRow, type BookingRowProps } from './components/BookingRow';

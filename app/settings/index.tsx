@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { Pressable, View, Switch } from 'react-native';
 
 import { ApiError } from '@/api';
-import { useAuth } from '@/auth';
+import { PhoneOtpSheet, useAuth } from '@/auth';
 import { optionalNativeModule } from '@/config/optionalNative';
 import { useUpdateProfile } from '@/features/profile';
-import { screenPadding, scrollBottomPadding, useTheme } from '@/theme';
+import { gesture, screenPadding, scrollBottomPadding, useTheme } from '@/theme';
 import {
   Avatar,
   Button,
@@ -55,6 +55,10 @@ const GENDER_OPTIONS: readonly { label: string; value: SelectableGender }[] = [
  * route was scaffolded, the form is short (name, phone, bio, photo), and a
  * save button that is visibly "dirty or not" is clearer than a navigation
  * round-trip for four fields.
+ *
+ * The phone is the exception: it is shown, not edited. It changes only by
+ * verifying the new number with an SMS code (`PhoneOtpSheet`), and the old
+ * number stays on the account until that succeeds.
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -130,7 +134,8 @@ function EditProfileCard() {
   const { update, isPending, error } = useUpdateProfile();
 
   const [name, setName] = useState(user?.name ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [changingPhone, setChangingPhone] = useState(false);
+  const [phoneChanged, setPhoneChanged] = useState(false);
   const [alternatePhone, setAlternatePhone] = useState(user?.alternatePhone ?? '');
   const [addressLine1, setAddressLine1] = useState(user?.address?.line1 ?? '');
   const [addressLine2, setAddressLine2] = useState(user?.address?.line2 ?? '');
@@ -182,7 +187,6 @@ function EditProfileCard() {
     try {
       await update({
         name: name.trim(),
-        phone: phone.trim(),
         alternatePhone: alternatePhone.trim(),
         address: {
           line1: addressLine1.trim(),
@@ -222,10 +226,27 @@ function EditProfileCard() {
       <Input label="Name" value={name} onChangeText={setName} autoCapitalize="words" />
       <Input
         label="Phone"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
+        value={user?.phone ?? ''}
+        placeholder="Not added"
+        prefix={user?.phone ? '+91' : undefined}
+        editable={false}
+        hint={phoneChanged ? 'Mobile number updated.' : undefined}
         containerClassName="mt-base"
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={user?.phone ? 'Change mobile number' : 'Add mobile number'}
+            hitSlop={gesture.hitSlop}
+            onPress={() => {
+              setPhoneChanged(false);
+              setChangingPhone(true);
+            }}
+          >
+            <Text variant="callout" tone="accent">
+              {user?.phone ? 'Change' : 'Add'}
+            </Text>
+          </Pressable>
+        }
       />
       <Input
         label="Alternate phone"
@@ -349,6 +370,15 @@ function EditProfileCard() {
           Refresh from server
         </Text>
       </Pressable>
+
+      <PhoneOtpSheet
+        mode={user?.phone ? 'change' : 'gate'}
+        visible={changingPhone}
+        onDone={(verified) => {
+          setChangingPhone(false);
+          setPhoneChanged(verified);
+        }}
+      />
     </Card>
   );
 }

@@ -1,11 +1,13 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 
 import { track } from '@/analytics';
 import { SignInPrompt } from '@/auth';
 import {
+  groupInbox,
   hrefForTarget,
   NotificationRow,
   readNotificationKind,
@@ -13,8 +15,9 @@ import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
+  type NotificationRowPosition,
 } from '@/features/notifications';
-import { tabBarClearance, useTheme } from '@/theme';
+import { radius, screenPadding, spacing, tabBarClearance, useTheme } from '@/theme';
 import type { AppNotification } from '@/types/backend/notification';
 import {
   EmptyState,
@@ -22,6 +25,7 @@ import {
   HeaderAction,
   Screen,
   ScreenHeader,
+  SectionLabel,
   Skeleton,
 } from '@/ui';
 
@@ -34,6 +38,16 @@ import {
  * Everything the platform has to tell a user arrives here — a lead on your
  * listing, a saved-search match, a deal approved, a reward to claim — and none
  * of it is worth less than the search field it used to sit beside.
+ *
+ * ---------------------------------------------------------------------------
+ * THE SHAPE, SINCE 2026-10-21
+ *
+ * Day groups (Today, Yesterday, This week, Earlier), each a grouped surface
+ * of rows with a glyph for the kind of event. It was one undivided column of
+ * text rows on the page colour, where a weekly digest and a new lead looked
+ * identical and a month of rows had no beginning or end. The list is still
+ * one virtualised list: group headers are rows of their own, and each row
+ * draws the corners of the group it sits in. See `NotificationRow`.
  *
  * WHAT THIS SCREEN DOES NOT CLAIM: the count in the subtitle is derived from
  * the rows this screen already holds, not from a server-side unread endpoint,
@@ -50,6 +64,31 @@ import {
  * destination this app recognises. It never follows an arbitrary `actionUrl`;
  * see `features/notifications/targets.ts` for why that matters.
  */
+
+type InboxItem =
+  | { type: 'header'; key: string; label: string }
+  | { type: 'row'; key: string; notification: AppNotification; position: NotificationRowPosition };
+
+/** Headers and rows as one flat list, with each row told where it sits. */
+function flattenInbox(items: AppNotification[]): InboxItem[] {
+  const out: InboxItem[] = [];
+  for (const group of groupInbox(items)) {
+    out.push({ type: 'header', key: `h-${group.key}`, label: group.label });
+    group.items.forEach((notification, index) => {
+      const position: NotificationRowPosition =
+        group.items.length === 1
+          ? 'only'
+          : index === 0
+            ? 'first'
+            : index === group.items.length - 1
+              ? 'last'
+              : 'middle';
+      out.push({ type: 'row', key: notification._id, notification, position });
+    });
+  }
+  return out;
+}
+
 export default function UpdatesScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -58,6 +97,8 @@ export default function UpdatesScreen() {
     useNotifications();
   const { markRead } = useMarkNotificationRead();
   const { markAllRead } = useMarkAllNotificationsRead();
+
+  const rows = useMemo(() => flattenInbox(items), [items]);
 
   const handlePress = useCallback(
     (notification: AppNotification) => {
@@ -78,8 +119,13 @@ export default function UpdatesScreen() {
       <ScreenHeader
         title="Updates"
         showBack={false}
-        tight
-        subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
+        subtitle={
+          unreadCount > 0
+            ? `${unreadCount} unread`
+            : items.length > 0
+              ? 'All caught up'
+              : undefined
+        }
         actions={
           unreadCount > 0 ? (
             <HeaderAction
@@ -104,13 +150,22 @@ export default function UpdatesScreen() {
         <ErrorState title="Could not load notifications" onRetry={refresh} />
       ) : items.length === 0 ? (
         <EmptyState
+          icon={
+            <View
+              className="items-center justify-center rounded-full"
+              style={{ width: 72, height: 72, backgroundColor: theme.colors.accentMuted }}
+            >
+              <Ionicons name="notifications" size={30} color={theme.colors.accent} />
+            </View>
+          }
           title="Nothing yet"
-          description="You will hear from us when something happens on your listings or saved searches."
+          description="A new lead, a saved-search match, a deal update or a reward to claim: it all lands here."
         />
       ) : (
         <FlashList
-          data={items}
-          keyExtractor={(item) => item._id}
+          data={rows}
+          keyExtractor={(item) => item.key}
+          getItemType={(item) => item.type}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -120,27 +175,47 @@ export default function UpdatesScreen() {
               progressBackgroundColor={theme.colors.surface}
             />
           }
-          ItemSeparatorComponent={() => <View className="h-px bg-border" />}
           // The dock floats over this list rather than sitting below it, so
           // the last row has to clear it — every tab screen pays this.
-          contentContainerStyle={{ paddingBottom: tabBarClearance }}
-          renderItem={({ item }) => <NotificationRow notification={item} onPress={handlePress} />}
+          contentContainerStyle={{
+            paddingHorizontal: screenPadding,
+            paddingBottom: tabBarClearance,
+          }}
+          renderItem={({ item, index }) =>
+            item.type === 'header' ? (
+              <View style={{ marginTop: index === 0 ? 0 : spacing.xl }}>
+                <SectionLabel>{item.label}</SectionLabel>
+              </View>
+            ) : (
+              <NotificationRow
+                notification={item.notification}
+                position={item.position}
+                onPress={handlePress}
+              />
+            )
+          }
         />
       )}
     </Screen>
   );
 }
 
+/** A heading and a group of three rows, the shape the loaded list takes. */
 function NotificationsSkeleton() {
   return (
-    <View className="px-base pt-sm">
-      {[0, 1, 2, 3, 4, 5].map((row) => (
-        <View key={row} className="py-md">
-          <Skeleton width="55%" height={16} />
-          <Skeleton width="85%" height={14} className="mt-sm" />
-          <Skeleton width={70} height={12} className="mt-sm" />
-        </View>
-      ))}
+    <View style={{ paddingHorizontal: screenPadding }}>
+      <Skeleton width={72} height={16} className="mb-sm" />
+      <View className="overflow-hidden bg-surface" style={{ borderRadius: radius.lg }}>
+        {[0, 1, 2].map((row) => (
+          <View key={row} className="flex-row" style={{ padding: spacing.md }}>
+            <Skeleton width={40} height={40} radius={radius.md} />
+            <View className="ml-md flex-1">
+              <Skeleton width="55%" height={16} />
+              <Skeleton width="85%" height={13} className="mt-sm" />
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

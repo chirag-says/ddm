@@ -11,9 +11,9 @@
  * A category name as the SERVER spells it.
  *
  * A `'Residential' | 'Commercial'` union until 2026-08-24, which was wrong in
- * both directions: it excluded `Land & Plots`, a real category no owner could
- * reach from this app, and it implied a closed set the client is not entitled
- * to decide. The vocabulary is the server's — see `taxonomy.ts` — so this is
+ * both directions: it excluded a category the server offered at the time
+ * (`Land & Plots`, since removed), and it implied a closed set the client is
+ * not entitled to decide. The vocabulary is the server's — see `taxonomy.ts` — so this is
  * the server's string, and the two places that genuinely branch on it treat
  * `Commercial` as the special case and everything else as residential-shaped.
  *

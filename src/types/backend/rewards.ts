@@ -56,13 +56,6 @@ export interface RewardTransaction {
   [key: string]: unknown;
 }
 
-export interface StoreReward {
-  slug?: string;
-  name?: string;
-  points?: number;
-  [key: string]: unknown;
-}
-
 /** `GET /rewards/wallet`. */
 export interface WalletResponse {
   success: true;
@@ -128,17 +121,6 @@ export interface ReferralsResponse {
   referrals: ReferralEntry[];
 }
 
-/** `GET /rewards/store`. Public. */
-export interface RewardsStoreResponse {
-  success: true;
-  rewards: StoreReward[];
-}
-
-export interface RedeemRewardRequest {
-  rewardSlug: string;
-  bankDetails?: Record<string, unknown>;
-}
-
 /**
  * `GET /rewards/policy`. Public. The numbers behind the rewards explainer,
  * read from `config/rewardPolicy.js`, which is env-driven: `milestones` is
@@ -164,13 +146,6 @@ export interface RewardsPolicyResponse {
     };
     pointValueRupees: number;
   };
-}
-
-export interface RedeemRewardResponse {
-  success: true;
-  message: string;
-  redemption: unknown;
-  newBalance: number;
 }
 
 // --- Hubble gift-card SDK ---------------------------------------------------

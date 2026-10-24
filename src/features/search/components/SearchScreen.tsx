@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { matchCityLoosely } from '@/features/home';
 import {
   LeafletMap,
   PropertyList,
@@ -211,7 +212,27 @@ export function SearchScreen() {
     // Validated against the table for the same reason as `sort` and
     // `priceBand`: an id matching no city would set a client-side filter that
     // excludes every listing, on a screen with no visible control saying why.
-    const city = CITY_OPTIONS.find((option) => option.value === route.city)?.value;
+    const routeCity = CITY_OPTIONS.find((option) => option.value === route.city)?.value;
+
+    /*
+      A city named in the TEXT beats a city that merely rode along as a param.
+
+      This is the second door into the bug the header's city chip caused, and
+      the reason its symptom was so confusing. Arriving with
+      `search=kolkata&city=bangalore`, the parse resolved Kolkata, declined to
+      apply it because `city` was already set, and then — because the city
+      stage had CONSUMED the word — wrote an empty residual over the query. The
+      screen ended up with `{ city: bangalore, query: '' }`: the field still
+      read "kolkata", the filter badge read 1, and thirteen Bangalore listings
+      came back. The user's word was not outranked, it was deleted.
+
+      Dropping the param when the text states a city leaves the parse to set it
+      from the words the user can actually see in the field. The param still
+      wins for every caller that sends a city WITHOUT text — the city grid, the
+      filter sheet, a saved search — because there is nothing to conflict with.
+    */
+    const textNamesCity = matchCityLoosely(search) != null;
+    const city = textNamesCity ? undefined : routeCity;
 
     // Nothing at all means the user tapped the tab directly, which must leave
     // their existing search alone.

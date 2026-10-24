@@ -1,6 +1,10 @@
 /**
  * Builder-project vertical contract. Source: backend/models/{Project,UnitType,
- * GroupBuyCampaign,ProjectBooking,Builder}.js and their controllers.
+ * ProjectBooking,Builder}.js and their controllers.
+ *
+ * Group buy (`GroupBuyCampaign`, `/campaigns/*`) and every booking payment
+ * type were removed on 2026-10-19, when DealDirect stopped taking money from
+ * users. `ProjectBooking` is now an enquiry record.
  *
  * These four models are large and mostly admin-authored. Typed here are the
  * nested groups the PUBLIC read endpoints return, which is all the mobile app
@@ -58,10 +62,9 @@ export interface Project extends Timestamps {
   documents?: Record<string, unknown>;
   legal?: Record<string, unknown>;
   paymentPlans?: unknown[];
-  /** Project-level money. `bookingAmount` here is the LEGACY fallback for the
-   *  booking token; `UnitType.paymentTerms.bookingAmount` takes precedence. */
+  /** Project-level tax and charge figures, as the builder entered them. The
+   *  model also has a booking amount, which the app no longer reads. */
   financials?: {
-    bookingAmount?: number;
     gstPercentage?: number;
     stampDutyPercentage?: number;
     registrationCharges?: number;
@@ -75,7 +78,6 @@ export interface Project extends Timestamps {
     max?: number;
     [key: string]: unknown;
   };
-  activeCampaignCount?: number;
   unitTypeCount?: number;
   isActive?: boolean;
   /**
@@ -182,17 +184,14 @@ export interface UnitType extends Timestamps {
     [key: string]: unknown;
   };
   /**
-   * `bookingAmount` is the token the buyer is asked for, and the first half of
-   * the resolution the server performs — `UnitType.paymentTerms.bookingAmount`
-   * first, `Project.financials.bookingAmount` as a legacy fallback. A unit type
-   * where both are absent cannot be booked at all (400
-   * `BOOKING_NOT_CONFIGURED`); it can still be enquired about.
-   *
-   * The three tax fields are additive and are deliberately NOT folded into
+   * The government charges the unit page adds to the list price in its cost
+   * sheet. They are additive and are deliberately NOT folded into
    * `pricing.effectivePrice` — they are government charges, not list price.
+   *
+   * The model also carries a token `bookingAmount` from the removed paid
+   * booking flow. The app does not read it: nothing is collected from buyers.
    */
   paymentTerms?: {
-    bookingAmount?: number;
     gstPercentage?: number;
     stampDutyPercentage?: number;
     registrationCharges?: number;
@@ -219,84 +218,29 @@ export interface UnitType extends Timestamps {
   };
   highlights?: string[];
   isActive?: boolean;
-  activeCampaignCount?: number;
 }
 
-// --- Group-buy campaign ---------------------------------------------------
+// --- Booking (an enquiry) ------------------------------------------------
 
-export type CampaignStatus = string;
-
-export interface GroupBuyCampaign extends Timestamps {
-  _id: ObjectId;
-  unitType?: ObjectId | Pick<UnitType, '_id' | 'config' | 'area' | 'pricing'>;
-  project?: ObjectId | Pick<Project, '_id' | 'basics' | 'location'>;
-  builder?: ObjectId | Builder;
-  createdBy?: ObjectId;
-  basics?: {
-    name?: string;
-    description?: string;
-    [key: string]: unknown;
-  };
-  buyerTargets?: Record<string, unknown>;
-  duration?: {
-    startDate?: IsoDate;
-    endDate?: IsoDate;
-    [key: string]: unknown;
-  };
-  discountPerBuyer?: unknown;
-  perks?: Record<string, unknown>;
-  status?: CampaignStatus;
-  memberCount?: number;
-  paidMemberCount?: number;
-}
-
-export interface JoinCampaignResponse {
-  success: true;
-  message: string;
-  data: {
-    memberId: ObjectId;
-    campaignName?: string;
-    discountPerBuyer?: unknown;
-    [key: string]: unknown;
-  };
-}
-
-// --- Booking --------------------------------------------------------------
-
+/**
+ * Open string, not a closed union. New records are `enquiry`, then `completed`
+ * or `cancelled`; older records can still carry statuses from the removed paid
+ * flow (`payment_submitted`, `confirmed`). See `features/projects/enquiryStatus`
+ * for how each reads to the buyer.
+ */
 export type BookingStatus = string;
 
 /**
- * `payment.status` on ProjectBooking. Closed enum, unlike `BookingStatus`.
- * Source: backend/models/ProjectBooking.js.
- */
-export type BookingPaymentStatus = 'pending' | 'submitted' | 'verified' | 'rejected';
-
-/**
- * What the buyer was ASKED for. Both start life in `status: 'enquiry'`, so this
- * is the only way to tell them apart after the fact.
- *
- * `booking` — the buyer was quoted a token amount and is expected to pay it.
- * `enquiry` — the buyer asked a question; no payment was requested and none is
- *             owed. Sending `intent: 'enquiry'` is what skips the token gate,
- *             which is the only way to reach a unit type with no booking amount
- *             configured.
- *
- * Defaults to `booking` server-side when no intent is sent.
+ * How the record began. Every record created since 2026-10-19 is `enquiry`;
+ * `booking` survives only on older records from the removed paid flow.
  */
 export type BookingSource = 'enquiry' | 'booking';
 
 /**
- * Statuses a BUYER may cancel from. Mirrors `USER_CANCELLABLE_STATES` in
- * `backend/controllers/bookingController.js:826`.
- *
- * `confirmed` and `completed` are excluded deliberately: they hold decremented
- * inventory and, on the group-buy path, a membership. Releasing those is an
- * admin decision with side effects.
+ * Statuses a BUYER may withdraw from. Mirrors the server's cancel route,
+ * which accepts `enquiry` only (400 NOT_CANCELLABLE otherwise).
  */
-export const USER_CANCELLABLE_STATUSES: readonly BookingStatus[] = [
-  'enquiry',
-  'payment_submitted',
-];
+export const USER_CANCELLABLE_STATUSES: readonly BookingStatus[] = ['enquiry'];
 
 export interface ProjectBooking extends Timestamps {
   _id: ObjectId;
@@ -309,7 +253,6 @@ export interface ProjectBooking extends Timestamps {
   clientEmail?: string;
   notes?: string;
   status: BookingStatus;
-  /** Whether this began as a paid booking or a no-payment enquiry. */
   source?: BookingSource;
   statusHistory?: unknown[];
   /** Admin-maintained outreach log. Returned on `GET /bookings/my` because it
@@ -317,36 +260,23 @@ export interface ProjectBooking extends Timestamps {
   contactHistory?: unknown[];
   /** Admin owning the follow-up. Not shown to the buyer. */
   assignedTo?: ObjectId | null;
-  /**
-   * Corrected 2026-08-13 (defect F6) against `backend/models/ProjectBooking.js`.
-   *
-   * Previously declared `utr` and a `verified` boolean. Neither exists: the
-   * field is `utrNumber`, and verification state is the `status` enum below.
-   * Both old reads were permanently `undefined`, so the booking screen could
-   * never show a verified or rejected payment and re-offered the submit form
-   * forever.
-   */
-  payment?: {
-    tokenAmount?: number;
-    utrNumber?: string;
-    screenshotUrl?: string;
-    submittedAt?: IsoDate;
-    verifiedAt?: IsoDate;
-    verifiedBy?: ObjectId;
-    status?: BookingPaymentStatus;
-    rejectionReason?: string;
-  };
+  // No `payment`. New records do not have one, and an older record that does
+  // is shown as an enquiry with that block ignored.
 }
 
 /**
- * `POST /bookings`. Requires an authenticated user.
+ * `POST /bookings`. Requires an authenticated user. The enquiries-only server
+ * records an enquiry whatever the body says and ignores `intent`.
+ *
+ * `intent: 'enquiry'` is still required here, for the server before that
+ * change: without it, that server records a PAID booking, or refuses a unit
+ * type with no booking amount. The app must not depend on which backend
+ * deploys first.
  *
  * Refusals worth handling individually, all of them actionable:
  * - 400 `NO_INVENTORY` — `availableUnits` is not at least 1, or was never set.
- * - 400 `BOOKING_NOT_CONFIGURED` — no token amount resolves. Only ever returned
- *   for a booking; an enquiry is exempt, which is the whole point of `intent`.
  * - 409 `DUPLICATE_ENQUIRY` — this user already has one open on this unit type.
- *   Cancelling the existing one frees the slot immediately.
+ *   Withdrawing the existing one frees the slot immediately.
  */
 export interface CreateBookingRequest {
   projectId: ObjectId;
@@ -355,25 +285,17 @@ export interface CreateBookingRequest {
   clientPhone: string;
   clientEmail?: string;
   notes?: string;
-  /**
-   * Send `'enquiry'` to ask without paying. Anything else — including omitting
-   * it — is a booking and must satisfy the token-amount gate.
-   */
-  intent?: 'enquiry';
+  intent: 'enquiry';
 }
 
 export interface CreateBookingResponse {
   success: true;
+  /** The server's confirmation sentence, shown to the buyer as is. */
   message: string;
   data: {
     bookingId: ObjectId;
-    /**
-     * Resolved and persisted BY THE SERVER. Display this; never compute a
-     * payable figure client-side. Zero for an enquiry.
-     */
-    tokenAmount?: number;
-    status: BookingStatus;
-    source?: BookingSource;
+    status: 'enquiry';
+    source: 'enquiry';
   };
 }
 
@@ -384,27 +306,10 @@ export interface CancelBookingRequest {
 
 export interface CancelBookingResponse {
   success: true;
+  /** "Enquiry withdrawn." */
   message: string;
   data: {
     status: BookingStatus;
     previousStatus: BookingStatus;
-    /**
-     * True when the buyer had already submitted payment evidence.
-     *
-     * Cancelling is NOT a refund and does not touch the payment fields: there
-     * is no gateway behind this, so the UTR and screenshot are the only record
-     * the money moved. A refund is arranged by a human, and the copy must say
-     * so rather than implying the money comes back automatically.
-     */
-    refundMayBeDue: boolean;
-  };
-}
-
-/** `GET /bookings/payment-config`. */
-export interface PaymentConfigResponse {
-  success: true;
-  data: {
-    qrUrl?: string;
-    upiId?: string;
   };
 }

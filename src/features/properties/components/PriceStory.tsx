@@ -57,6 +57,29 @@ export interface PriceStoryProps {
   showDaysListed?: boolean;
 }
 
+/**
+ * Whether `PriceStory` would render anything, for the screen that owns the
+ * section heading.
+ *
+ * The component unmounts itself when there is nothing to say, but a heading
+ * drawn by its parent does not know that: the detail page printed a "Price"
+ * heading over an empty block on every listing without price history, with
+ * the "Posted just now" line beneath it reading as the price. The parent asks
+ * first and draws neither.
+ */
+export function hasPriceStory(
+  intelligence: PriceIntelligence | null,
+  showDaysListed = true
+): boolean {
+  const lines = describePriceIntelligence(intelligence, formatPrice);
+  return (
+    !!lines.lastDrop ||
+    (showDaysListed && !!lines.daysListed) ||
+    !!lines.market ||
+    lines.history.length > 0
+  );
+}
+
 export function PriceStory({
   intelligence,
   onOpenLocality,
@@ -72,7 +95,7 @@ export function PriceStory({
 
   const daysListed = showDaysListed ? lines.daysListed : null;
 
-  if (!lines.lastDrop && !daysListed && !lines.market && lines.history.length === 0) return null;
+  if (!hasPriceStory(intelligence, showDaysListed)) return null;
 
   const verdictColor =
     lines.market?.verdict === 'below'

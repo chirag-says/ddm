@@ -59,7 +59,7 @@ export function CounterpartCard({ counterpart, role, contactRevealed }: Counterp
             <View className="mt-xs flex-row items-center">
               <Ionicons name="shield-checkmark" size={14} color={theme.colors.success} />
               <Text variant="caption" tone="success" className="ml-xs">
-                Verified {label.toLowerCase()}
+                Identity verified
               </Text>
             </View>
           ) : null}

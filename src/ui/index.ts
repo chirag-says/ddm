@@ -41,6 +41,7 @@ export { useTextInputStyle, type TextInputStyleOptions } from './textInputStyle'
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
 export { DateField, type DateFieldProps } from './DateField';
 export { Input, type InputProps } from './Input';
+export { PasswordInput, type PasswordInputProps } from './PasswordInput';
 export { Select, type SelectProps, type SelectOption } from './Select';
 export { Sheet, type SheetProps } from './Sheet';
 export { Card, type CardProps, type CardRadius } from './Card';
@@ -53,6 +54,7 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { Refreshable, type RefreshableProps } from './Refreshable';
 export { KeyboardAvoider, type KeyboardAvoiderProps } from './KeyboardAvoider';
+export { useKeyboardHeight } from './useKeyboardHeight';
 export { Chip, type ChipProps } from './Chip';
 export {
   PriceLabel,

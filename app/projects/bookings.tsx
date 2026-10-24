@@ -6,17 +6,19 @@ import { BookingRow, useMyBookings } from '@/features/projects';
 import { EmptyState, ErrorState, Screen, ScreenHeader, Skeleton } from '@/ui';
 
 /**
- * My bookings. Not part of the M0 route scaffold — screen #42 in the
- * architecture plan's build order, added here since `bookingsEndpoints.mine`
- * already existed with nowhere in the app that called it.
+ * My enquiries about builder units. Not part of the M0 route scaffold — screen
+ * #42 in the architecture plan's build order, added here since
+ * `bookingsEndpoints.mine` already existed with nowhere in the app that called
+ * it. The route keeps the backend's `bookings` name; since 2026-10-19 every
+ * record behind it is an enquiry and nothing here involves money.
  */
-export default function MyBookingsScreen() {
+export default function MyEnquiriesScreen() {
   const router = useRouter();
   const { bookings, isLoading, isRefreshing, error, refresh, signedIn } = useMyBookings();
 
   return (
     <Screen>
-      <ScreenHeader title="My bookings" backTo="/(tabs)/profile" />
+      <ScreenHeader title="My enquiries" backTo="/(tabs)/profile" />
 
       {/* Loading is checked FIRST: during the cold-start session probe nobody
           is "signed out" yet, they are unknown, and a sign-in prompt shown to a
@@ -31,15 +33,15 @@ export default function MyBookingsScreen() {
         /* Not an error state. This screen is deep-linkable and sits behind a
            profile row, so arriving signed-out is ordinary, not a failure. */
         <SignInPrompt
-          title="Sign in to see your bookings"
-          description="Your enquiries, bookings and payment history are tied to your account."
+          title="Sign in to see your enquiries"
+          description="Your enquiries about builder units are tied to your account."
         />
       ) : error ? (
-        <ErrorState title="Could not load your bookings" onRetry={refresh} />
+        <ErrorState title="Could not load your enquiries" onRetry={refresh} />
       ) : bookings.length === 0 ? (
         <EmptyState
-          title="No bookings yet"
-          description="Book a unit or send an enquiry from any project to see it here."
+          title="No enquiries yet"
+          description="Enquire about a unit in any builder project to see it here."
           actionLabel="Browse projects"
           onAction={() => router.push('/projects')}
         />

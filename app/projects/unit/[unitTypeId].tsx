@@ -6,14 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api';
 import { setPendingIntent, useAuth } from '@/auth';
-import {
-  useCampaignsForUnitType,
-  useCreateBooking,
-  useProjectDetail,
-  useUnitTypeDetail,
-} from '@/features/projects';
+import { useCreateBooking, useUnitTypeDetail } from '@/features/projects';
 import { screenPadding, spacing, useTheme } from '@/theme';
-import type { GroupBuyCampaign, UnitType } from '@/types/backend/project';
+import type { UnitType } from '@/types/backend/project';
 import {
   Badge,
   Button,
@@ -21,7 +16,6 @@ import {
   ErrorState,
   Image,
   Input,
-  KeyboardAvoider,
   PriceLabel,
   Screen,
   ScreenHeader,
@@ -31,40 +25,33 @@ import {
   useToast,
 } from '@/ui';
 
-/** What the buyer is being asked for. Drives the copy, not just the payload. */
-type Intent = 'booking' | 'enquiry';
-
+/**
+ * One builder unit type, and the one thing a buyer can do about it: enquire.
+ *
+ * DealDirect takes no money from users (owner decision, 2026-10-19). This
+ * screen used to offer a paid token booking beside the enquiry, with its own
+ * sheet, its own refusal for units with no token configured, and a payment
+ * screen after it. All of that is gone, and `POST /bookings` now records an
+ * enquiry whatever the client sends. Group buy went at the same time.
+ */
 export default function UnitTypeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { unitTypeId, resume } = useLocalSearchParams<{ unitTypeId: string; resume?: string }>();
   const { unitType, isLoading, error, refresh } = useUnitTypeDetail(unitTypeId);
-  const { campaigns } = useCampaignsForUnitType(unitTypeId);
   const { status } = useAuth();
   const insets = useSafeAreaInsets();
   /**
-   * `resume` carries which CTA a guest pressed before signing in, so the sheet
-   * they asked for opens on arrival. Validated against the two real values
-   * rather than cast: a deep link must not be able to raise a payment sheet on
-   * its own say-so.
+   * `resume=enquiry` means a guest pressed "Enquire" before signing in, so the
+   * sheet they asked for opens on arrival. Compared against the one real value
+   * rather than treated as truthy, so a stale or hand-written link only opens
+   * the screen. Opening the sheet sends nothing: the buyer still has to press
+   * "Send enquiry".
    */
-  const [intent, setIntent] = useState<Intent | null>(
-    resume === 'booking' || resume === 'enquiry' ? resume : null
-  );
+  const [sheetOpen, setSheetOpen] = useState(resume === 'enquiry');
 
   const projectId =
     typeof unitType?.project === 'object' ? unitType.project?._id : unitType?.project;
-
-  /**
-   * The project is fetched for ONE field: `financials.bookingAmount`, the
-   * legacy fallback in the server's token resolution. Without it this screen
-   * cannot tell "no token configured anywhere" from "configured at project
-   * level", and would hide a booking button that would have worked.
-   *
-   * Nearly free in practice — arriving here means the project detail is already
-   * in cache, and it is held for 30 minutes.
-   */
-  const { project } = useProjectDetail(projectId ?? '');
 
   /**
    * Measured, not assumed. The scroll view used a hardcoded `paddingBottom:
@@ -84,17 +71,15 @@ export default function UnitTypeScreen() {
   // in would only discover that at submit — and a 401 there reads as a dead
   // session rather than "please sign in". Gate before the form opens, which
   // is what the website does too.
-  const openSheet = (next: Intent) => {
+  const openSheet = () => {
     if (!isAuthenticated) {
-      // Which of the two CTAs was pressed is recorded, not just the unit: the
-      // book and enquire paths differ in what they ask for and what they cost,
-      // so returning a signed-in user to the wrong sheet would be worse than
-      // returning them to neither. See `auth/pendingIntent.ts`.
-      setPendingIntent({ kind: 'unit', unitTypeId, intent: next });
+      // The unit is recorded so that signing in lands back here with the
+      // enquiry sheet open, not on the Search tab. See `auth/pendingIntent.ts`.
+      setPendingIntent({ kind: 'unit', unitTypeId });
       router.push('/(auth)/login');
       return;
     }
-    setIntent(next);
+    setSheetOpen(true);
   };
 
   if (isLoading) {
@@ -126,24 +111,15 @@ export default function UnitTypeScreen() {
    * Availability, read from the field that exists. `inventory.available` was
    * read here for months and is not on the model — see the note on the type.
    *
-   * The server's gate is `availableUnits >= 1`, and it runs BEFORE the enquiry
-   * exemption, so an unset or exhausted count refuses a question as firmly as a
-   * payment. The two causes get different copy because they mean different
-   * things to a buyer: one is "come back later", the other is "we have not
-   * published this yet".
+   * The server refuses an enquiry with NO_INVENTORY unless `availableUnits` is
+   * at least 1, so an unset count refuses as firmly as an exhausted one. The
+   * two causes get different copy because they mean different things to a
+   * buyer: one is "come back later", the other is "we have not published this
+   * yet".
    */
   const available = unitType.inventory?.availableUnits;
   const hasUnits = typeof available === 'number' && available >= 1;
   const soldOut = typeof available === 'number' && available <= 0;
-
-  /**
-   * The token, resolved exactly as the server resolves it. This figure is for
-   * DISPLAY and for deciding which buttons to show; the amount actually owed is
-   * always the one the create response returns.
-   */
-  const bookingAmount =
-    unitType.paymentTerms?.bookingAmount ?? project?.financials?.bookingAmount ?? 0;
-  const canBook = bookingAmount > 0;
 
   return (
     <Screen>
@@ -224,24 +200,6 @@ export default function UnitTypeScreen() {
             <Ionicons name="play-circle" size={28} color={theme.colors.accent} />
           </Card>
         ) : null}
-
-        {/* Group buy is held product-wide — `useCampaignsForUnitType` returns
-            nothing while the flag is off, so this section stays dark with it.
-            See config/features.ts. */}
-        {campaigns.length > 0 ? (
-          <View className="mt-base">
-            <Text variant="title3" className="mb-sm">
-              Group buy
-            </Text>
-            {campaigns.map((campaign) => (
-              <CampaignRow
-                key={campaign._id}
-                campaign={campaign}
-                onPress={() => router.push(`/projects/campaign/${campaign._id}`)}
-              />
-            ))}
-          </View>
-        ) : null}
       </ScrollView>
 
       {/*
@@ -266,47 +224,22 @@ export default function UnitTypeScreen() {
               ? 'Every unit of this type is taken. Other unit types in this project may still be available.'
               : 'Availability for this unit type has not been published yet. Please check back, or contact us.'}
           </Text>
-        ) : !canBook ? (
-          /*
-            The honest version of a missing booking amount.
-
-            Three of the eight real unit types have none, and a booking against
-            them is refused server-side with BOOKING_NOT_CONFIGURED. Showing a
-            "Book" button that cannot succeed teaches the user the app is
-            broken; the enquiry below is a real path to the same outcome.
-          */
-          <Text variant="caption" tone="muted" className="mb-sm">
-            Token booking is not set up for this unit yet. Send an enquiry and our team will
-            call you with the payment details.
-          </Text>
-        ) : null}
-
-        {canBook ? (
-          <Button
-            label={isAuthenticated ? 'Book this unit' : 'Sign in to book'}
-            disabled={!hasUnits}
-            fullWidth
-            onPress={() => openSheet('booking')}
-          />
         ) : null}
 
         <Button
-          label={canBook ? 'Enquire — no payment needed' : 'Enquire about this unit'}
-          variant={canBook ? 'secondary' : 'primary'}
+          label="Enquire about this unit"
           disabled={!hasUnits}
           fullWidth
-          className={canBook ? 'mt-sm' : undefined}
-          onPress={() => openSheet('enquiry')}
+          onPress={openSheet}
         />
       </View>
 
       {projectId ? (
-        <BookingSheet
-          intent={intent}
-          onClose={() => setIntent(null)}
+        <EnquirySheet
+          visible={sheetOpen}
+          onClose={() => setSheetOpen(false)}
           projectId={projectId}
           unitTypeId={unitType._id}
-          bookingAmount={bookingAmount}
         />
       ) : null}
     </Screen>
@@ -614,47 +547,25 @@ function InteriorPhotos({ photos }: { photos: UnitType['photos'] }) {
   );
 }
 
-function CampaignRow({ campaign, onPress }: { campaign: GroupBuyCampaign; onPress: () => void }) {
-  const theme = useTheme();
-
-  // `Card`'s own `onPress` rather than a wrapping `Pressable`: the bare
-  // Pressable this used had no `style` callback, so the row gave no feedback
-  // on touch at all. Card springs.
-  return (
-    <Card onPress={onPress} className="mb-base flex-row items-center justify-between">
-      <View className="flex-1 pr-base">
-        <Text variant="bodyEmphasis">{campaign.basics?.name ?? 'Group buy'}</Text>
-        <Text variant="footnote" tone="secondary" className="mt-xs">
-          {campaign.memberCount ?? 0} joined
-          {campaign.status ? ` · ${campaign.status}` : ''}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-    </Card>
-  );
-}
-
 /**
- * One sheet, two asks.
+ * The enquiry form.
  *
- * A booking and an enquiry post the same body to the same route and differ by a
- * single field, so they are one form. What changes is what the buyer is being
- * told: a booking quotes money and leads to a payment screen, an enquiry
- * promises a callback and leads nowhere. Duplicating the form to say that would
- * mean two places to fix the next time the field list moves.
+ * It posts to `POST /bookings`, which kept its name when it stopped taking
+ * money. There is no booking variant of this sheet any more; `intent` is sent
+ * only so a server from before the change records an enquiry too (see
+ * `CreateBookingRequest`). Success leads nowhere but a toast. The buyer is waiting on a phone call, and the
+ * enquiry is listed under My enquiries if they want to see or withdraw it.
  */
-function BookingSheet({
-  intent,
+function EnquirySheet({
+  visible,
   onClose,
   projectId,
   unitTypeId,
-  bookingAmount,
 }: {
-  intent: Intent | null;
+  visible: boolean;
   onClose: () => void;
   projectId: string;
   unitTypeId: string;
-  bookingAmount: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -665,8 +576,6 @@ function BookingSheet({
   const [clientPhone, setClientPhone] = useState(user?.phone ?? '');
   const [clientEmail, setClientEmail] = useState(user?.email ?? '');
   const [notes, setNotes] = useState('');
-
-  const isEnquiry = intent === 'enquiry';
 
   const close = () => {
     reset();
@@ -682,19 +591,13 @@ function BookingSheet({
         clientPhone: clientPhone.trim(),
         clientEmail: clientEmail.trim() || undefined,
         notes: notes.trim() || undefined,
-        ...(isEnquiry ? { intent: 'enquiry' as const } : {}),
+        intent: 'enquiry',
       });
 
       close();
-
-      if (isEnquiry) {
-        // Nothing is owed, so there is nowhere to send them. The server's own
-        // sentence is the right one — it is the promise being made.
-        toast.show(response.message || 'Thanks — our team will call you shortly.');
-        return;
-      }
-
-      router.push(`/projects/booking/${response.data.bookingId}`);
+      // The server's own sentence is the right one: it is the promise being
+      // made. The fallback only covers a response that arrives without one.
+      toast.show(response.message || 'Thanks. Our team will call you shortly.');
     } catch {
       // surfaced via `error` below
     }
@@ -713,8 +616,8 @@ function BookingSheet({
       case 'DUPLICATE_ENQUIRY':
         return {
           message:
-            'You already have an open request for this unit. Cancel it from My bookings if you want to start again.',
-          actionLabel: 'View my bookings',
+            'You already have an open enquiry for this unit. Withdraw it from My enquiries if you want to start again.',
+          actionLabel: 'View my enquiries',
           onAction: () => {
             close();
             router.push('/projects/bookings');
@@ -725,82 +628,86 @@ function BookingSheet({
           message:
             'The last unit of this type went while this was open. Nothing was submitted.',
         };
-      case 'BOOKING_NOT_CONFIGURED':
-        return {
-          message:
-            'Token booking is not set up for this unit yet. Send an enquiry instead and our team will call you.',
-        };
       default:
         return { message: error.message };
     }
   })();
 
   return (
-    <Sheet
-      visible={intent !== null}
-      onClose={close}
-      title={isEnquiry ? 'Enquire about this unit' : 'Book this unit'}
-      heightRatio={0.75}
-    >
-      <KeyboardAvoider>
-        <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
-          <Text variant="footnote" tone="secondary" className="mb-base">
-            {isEnquiry
-              ? 'No payment needed. Our team will call you back about this unit — availability, pricing and next steps.'
-              : bookingAmount > 0
-                ? `This reserves the unit with a token payment of ₹${bookingAmount.toLocaleString('en-IN')}, which you submit on the next screen.`
-                : 'This reserves the unit with a token payment, submitted after the builder confirms your request.'}
-          </Text>
+    <Sheet visible={visible} onClose={close} title="Enquire about this unit" heightRatio={0.75}>
+      {/*
+        A bare, shrinkable ScrollView — no KeyboardAvoidingView.
 
-          <Input label="Full name" value={clientName} onChangeText={setClientName} />
-          <Input
-            label="Phone"
-            value={clientPhone}
-            onChangeText={setClientPhone}
-            keyboardType="phone-pad"
-            containerClassName="mt-base"
-          />
-          <Input
-            label="Email (optional)"
-            value={clientEmail}
-            onChangeText={setClientEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            containerClassName="mt-base"
-          />
-          <Input
-            label={isEnquiry ? 'What would you like to know? (optional)' : 'Notes (optional)'}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            containerClassName="mt-base"
-          />
+        This used to be `<KeyboardAvoider>` wrapping the scroll view, and that
+        is why the sheet opened empty: `KeyboardAvoider` is `flex-1`, the
+        sheet's body is auto-height, and a `flex-1` child of an auto-height
+        parent lays out at zero. The whole form — four fields and the confirm
+        button — was present, measured, and one point tall. See the note on the
+        body in `ui/Sheet`.
 
-          {refusal ? (
-            <View className="mt-base">
-              <Text variant="footnote" tone="danger">
-                {refusal.message}
-              </Text>
-              {refusal.actionLabel ? (
-                <Button
-                  label={refusal.actionLabel}
-                  variant="secondary"
-                  className="mt-sm"
-                  onPress={refusal.onAction}
-                />
-              ) : null}
-            </View>
-          ) : null}
+        It was also the wrong tool. A sheet is positioned by the modal root, so
+        avoidance has to move the SHEET; `Sheet` now reads the keyboard height
+        itself and lifts the surface, which fixes this form and every other
+        sheet that asks for text.
+      */}
+      <ScrollView
+        style={{ flexShrink: 1 }}
+        contentContainerStyle={{ padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text variant="footnote" tone="secondary" className="mb-base">
+          Our team will call you back about this unit: availability, pricing and next steps.
+        </Text>
 
-          <Button
-            label={isEnquiry ? 'Send enquiry' : 'Confirm booking'}
-            className="mt-lg"
-            loading={isPending}
-            disabled={!clientName.trim() || !clientPhone.trim()}
-            onPress={() => void handleSubmit()}
-          />
-        </ScrollView>
-      </KeyboardAvoider>
+        <Input label="Full name" value={clientName} onChangeText={setClientName} />
+        <Input
+          label="Phone"
+          value={clientPhone}
+          onChangeText={setClientPhone}
+          keyboardType="phone-pad"
+          containerClassName="mt-base"
+        />
+        <Input
+          label="Email (optional)"
+          value={clientEmail}
+          onChangeText={setClientEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          containerClassName="mt-base"
+        />
+        <Input
+          label="What would you like to know? (optional)"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          containerClassName="mt-base"
+        />
+
+        {refusal ? (
+          <View className="mt-base">
+            <Text variant="footnote" tone="danger">
+              {refusal.message}
+            </Text>
+            {refusal.actionLabel ? (
+              <Button
+                label={refusal.actionLabel}
+                variant="secondary"
+                className="mt-sm"
+                onPress={refusal.onAction}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        <Button
+          label="Send enquiry"
+          className="mt-lg"
+          loading={isPending}
+          disabled={!clientName.trim() || !clientPhone.trim()}
+          onPress={() => void handleSubmit()}
+        />
+      </ScrollView>
     </Sheet>
   );
 }

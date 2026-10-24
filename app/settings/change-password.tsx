@@ -7,7 +7,7 @@ import { ApiError } from '@/api';
 import { RequireAuth } from '@/auth';
 import { useChangePassword } from '@/features/profile';
 import { useTheme } from '@/theme';
-import { Button, Input, KeyboardAvoider, Screen, ScreenHeader, Text } from '@/ui';
+import { Button, KeyboardAvoider, PasswordInput, Screen, ScreenHeader, Text } from '@/ui';
 
 export default function ChangePasswordRoute() {
   return (
@@ -71,17 +71,15 @@ function ChangePasswordScreen() {
             </View>
           ) : (
             <>
-              <Input
+              <PasswordInput
                 label="Current password"
-                secureTextEntry
                 autoCapitalize="none"
                 textContentType="password"
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
               />
-              <Input
+              <PasswordInput
                 label="New password"
-                secureTextEntry
                 autoCapitalize="none"
                 textContentType="newPassword"
                 value={newPassword}
@@ -89,9 +87,8 @@ function ChangePasswordScreen() {
                 containerClassName="mt-base"
                 hint="At least 8 characters."
               />
-              <Input
+              <PasswordInput
                 label="Confirm new password"
-                secureTextEntry
                 autoCapitalize="none"
                 textContentType="newPassword"
                 value={confirmPassword}

@@ -6,7 +6,7 @@ import { ApiError } from '@/api';
 import { GoogleSignInCancelled, RequireAuth, signInWithGoogle, useAuth } from '@/auth';
 import { confirmWithBiometrics } from '@/native';
 import { useDeleteAccount } from '@/features/profile';
-import { Button, Input, Screen, ScreenHeader, Text, useToast } from '@/ui';
+import { Button, Input, PasswordInput, KeyboardAvoider, Screen, ScreenHeader, Text, useToast } from '@/ui';
 
 const CONFIRM_WORD = 'DELETE';
 
@@ -120,7 +120,13 @@ function DeleteAccountScreen() {
     <Screen>
       <ScreenHeader title="Delete account" backTo="/settings" />
 
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
+      {/* Two fields at the bottom of a page that has to be read before it is
+          filled in, so the keyboard lands squarely on them. */}
+      <KeyboardAvoider>
+        <ScrollView
+          contentContainerStyle={{ padding: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
         <View className="mb-lg rounded-lg bg-danger-muted p-md">
           <Text variant="bodyEmphasis" tone="danger">
             This cannot be undone
@@ -147,11 +153,10 @@ function DeleteAccountScreen() {
             You will be asked to confirm with Google before anything is deleted.
           </Text>
         ) : (
-          <Input
+          <PasswordInput
             label="Your password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
             autoCapitalize="none"
             autoComplete="current-password"
             textContentType="password"
@@ -180,7 +185,8 @@ function DeleteAccountScreen() {
           loading={isPending}
           onPress={() => void handleDelete()}
         />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

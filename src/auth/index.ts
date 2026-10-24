@@ -11,7 +11,12 @@ export {
   GoogleSignInCancelled,
   GoogleSignInUnavailable,
 } from './googleSignIn';
-export { isPhoneGateError, requestPhoneVerification, setPhoneGatePresenter } from './phoneGate';
+export {
+  ensurePhoneVerifiedBeforeUpload,
+  isPhoneGateError,
+  requestPhoneVerification,
+  setPhoneGatePresenter,
+} from './phoneGate';
 export {
   captureSessionCookie,
   restoreSessionCookie,
@@ -42,6 +47,7 @@ export { OwnerOnly, type OwnerOnlyProps } from './components/OwnerOnly';
 export { SignInPrompt, type SignInPromptProps } from './components/SignInPrompt';
 export { RequireAuth, type RequireAuthProps } from './components/RequireAuth';
 export { PhoneVerificationSheet } from './components/PhoneVerificationSheet';
+export { PhoneOtpSheet, type PhoneOtpSheetProps } from './components/PhoneOtpSheet';
 export { GoogleAuthButton, type GoogleAuthButtonProps } from './components/GoogleAuthButton';
 export { GoogleLinkSheet, type GoogleLinkSheetProps } from './components/GoogleLinkSheet';
 

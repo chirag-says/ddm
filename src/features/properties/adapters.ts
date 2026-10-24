@@ -12,6 +12,7 @@ import type {
   PropertyListingType,
 } from '@/types/backend/property';
 import type { Category, PropertyType, SubCategory } from '@/types/backend/taxonomy';
+import { composeLocation, normalizeAmenities, readableAddressLine } from './detailFormat';
 import type {
   GalleryImage,
   ListingIntent,
@@ -122,10 +123,6 @@ function resolveCoordinates(property: Property): PropertyCoordinates | null {
   if (lat === 0 && lng === 0) return null;
 
   return { lat, lng };
-}
-
-function composeLocation(locality: string | undefined, city: string | undefined): string {
-  return [locality, city].filter(Boolean).join(', ');
 }
 
 /**
@@ -338,19 +335,22 @@ export function adaptPropertyDetail(property: Property): PropertyDetail {
     videoUrl: property.videoUrl,
 
     gallery: flattenGallery(property),
-    // Blank strings are filtered: the website's amenity editor writes an empty
-    // entry when a row is added and left unfilled, and an empty chip is worse
-    // than a missing one.
-    amenities: (property.amenities ?? []).map((a) => a?.trim()).filter((a): a is string => !!a),
+    // Blanks dropped, and a JSON-encoded list (what the app's form sent and the
+    // server stored whole until 2026-10-21) expanded into its names. See
+    // `detailFormat.normalizeAmenities`.
+    amenities: normalizeAmenities(property.amenities),
 
     owner: resolveOwner(property),
     ownerStats: property.ownerStats ?? null,
     priceIntelligence: property.priceIntelligence ?? null,
 
-    addressLine: property.address?.line,
+    // A plus code ("4JVH+2C9") is what the listing form's reverse geocode
+    // writes where there is no street name. Hidden rather than printed: the
+    // pin is on the map screen, and the code reads as a typo.
+    addressLine: readableAddressLine(property.address?.line),
     state: property.address?.state,
     pincode: property.address?.pincode,
-    landmark: property.address?.landmark,
+    landmark: readableAddressLine(property.address?.landmark),
     nearby: (property.address?.nearby ?? []).map((n) => n?.trim()).filter((n): n is string => !!n),
 
     availableFrom: property.availableFrom,
