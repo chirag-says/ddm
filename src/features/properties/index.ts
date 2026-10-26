@@ -41,6 +41,12 @@ export { DetailFacts, type DetailFactsProps } from './components/DetailFacts';
 export { DetailOwner, type DetailOwnerProps } from './components/DetailOwner';
 export { ZoomableImage, type ZoomableImageProps } from './components/ZoomableImage';
 export {
+  PhotoViewer,
+  PhotoViewerModal,
+  type PhotoViewerProps,
+  type PhotoViewerModalProps,
+} from './components/PhotoViewer';
+export {
   DetailAttributes,
   type DetailAttributesProps,
 } from './components/DetailAttributes';

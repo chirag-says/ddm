@@ -10,8 +10,14 @@
 export {
   adaptProject,
   adaptProjectDetail,
+  formatDadoHeight,
+  splitHighlights,
+  unitFacts,
+  unitPhotos,
   unitSummary,
   type ConnectivityKind,
+  type ProjectPhoto,
+  type UnitFactKey,
   type ProjectDetailView,
   type ProjectFactKey,
 } from './adapters';
@@ -20,6 +26,7 @@ export { useRecentProjects, useProjectFeed, type RecentProjectsResult, type Proj
 export { ProjectCard, type ProjectCardProps } from './components/ProjectCard';
 export { ProjectRail, type ProjectRailProps } from './components/ProjectRail';
 export { ProjectList, type ProjectListProps } from './components/ProjectList';
+export { FactGrid, type Fact } from './components/FactGrid';
 export { ProjectListCard, type ProjectListCardProps } from './components/ProjectListCard';
 export type { ProjectSummary } from './types';
 

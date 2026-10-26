@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, Share, useWindowDimensions, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Share, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedRef,
   useAnimatedScrollHandler,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WEB_URL } from '@/config/env';
 import {
   adaptProjectDetail,
+  FactGrid,
   unitSummary,
   type ConnectivityKind,
   type ProjectDetailView,
@@ -26,6 +27,7 @@ import {
   DetailIconList,
   ExpandableText,
   HEADER_BAR_HEIGHT,
+  PhotoViewerModal,
 } from '@/features/properties';
 import { gesture, screenPadding, spacing, useTheme } from '@/theme';
 import type { UnitType } from '@/types/backend/project';
@@ -123,6 +125,8 @@ export default function ProjectDetailScreen() {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   const [photoIndex, setPhotoIndex] = useState(0);
+  /** Index of the photo open full screen, or null while the viewer is closed. */
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [unitsY, setUnitsY] = useState(0);
   const [actionBarHeight, setActionBarHeight] = useState(88);
@@ -220,7 +224,7 @@ export default function ProjectDetailScreen() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(uri, index) => `${uri}-${index}`}
+              keyExtractor={(photo, index) => `${photo.uri}-${index}`}
               initialNumToRender={1}
               windowSize={3}
               removeClippedSubviews
@@ -228,7 +232,15 @@ export default function ProjectDetailScreen() {
               onMomentumScrollEnd={(event) =>
                 setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / width))
               }
-              renderItem={({ item }) => <Image uri={item} size="medium" style={{ width, height }} />}
+              renderItem={({ item, index }) => (
+                <Pressable
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`Open photo ${index + 1} of ${detail.gallery.length} full screen`}
+                  onPress={() => setViewerAt(index)}
+                >
+                  <Image uri={item.uri} size="medium" style={{ width, height }} />
+                </Pressable>
+              )}
             />
           ) : (
             <View className="h-full w-full items-center justify-center bg-surface-muted">
@@ -288,7 +300,10 @@ export default function ProjectDetailScreen() {
             </Text>
           ) : null}
 
-          {detail.facts.length > 0 ? <FactGrid facts={detail.facts} /> : null}
+          <FactGrid
+            className="mt-lg"
+            facts={detail.facts.map((fact) => ({ ...fact, icon: FACT_ICON[fact.key] }))}
+          />
 
           {/*
             Units come before the description and amenities: price and size
@@ -419,45 +434,9 @@ export default function ProjectDetailScreen() {
           <Button label="See units & prices" fullWidth onPress={scrollToUnits} />
         </Animated.View>
       ) : null}
-    </Screen>
-  );
-}
 
-/**
- * Key facts as one card, two per row: icon, small label, bold value.
- *
- * Replaced five `Stat` tiles (2026-10-26). Each tile set its value at title2
- * in a 16pt-padded box, so five facts filled a whole screen and the fifth sat
- * alone beside a gap. The label above the value is what makes "1 · G+31"
- * readable at all.
- */
-function FactGrid({ facts }: { facts: ProjectDetailView['facts'] }) {
-  const theme = useTheme();
-  return (
-    // The grid is an inner View: `Card` spreads its props after its own
-    // `style`, so a `style` passed to it would drop the padding and shadow.
-    <Card className="mt-lg">
-      <View className="flex-row flex-wrap" style={{ rowGap: spacing.base }}>
-        {facts.map((fact) => (
-          <View key={fact.key} className="flex-row items-center" style={{ width: '50%' }}>
-            <View
-              className="items-center justify-center rounded-full"
-              style={{ width: 36, height: 36, backgroundColor: theme.colors.accentMuted }}
-            >
-              <Ionicons name={FACT_ICON[fact.key]} size={18} color={theme.colors.accent} />
-            </View>
-            <View className="ml-sm flex-1">
-              <Text variant="caption" tone="muted">
-                {fact.label}
-              </Text>
-              <Text variant="bodyEmphasis" numberOfLines={1}>
-                {fact.value}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </Card>
+      <PhotoViewerModal images={detail.gallery} openAt={viewerAt} onClose={() => setViewerAt(null)} />
+    </Screen>
   );
 }
 

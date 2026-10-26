@@ -2,7 +2,16 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { Project, UnitType } from '../../types/backend/project.ts';
-import { adaptProject, adaptProjectDetail, formatMonthYear, unitSummary } from './adapters.ts';
+import {
+  adaptProject,
+  adaptProjectDetail,
+  formatDadoHeight,
+  formatMonthYear,
+  splitHighlights,
+  unitFacts,
+  unitPhotos,
+  unitSummary,
+} from './adapters.ts';
 
 /** Shaped like the live "One Vaviya" record (GET /projects/:id, 2026-10-26). */
 const LIVE: Project = {
@@ -72,7 +81,12 @@ describe('the project detail page', () => {
   });
 
   it('shows real photos first and never the location map screenshot', () => {
-    assert.deepEqual(adaptProjectDetail(LIVE).gallery, ['ext.jpg', 'drone.jpg', 'pool.jpg', 'plan.jpg']);
+    assert.deepEqual(adaptProjectDetail(LIVE).gallery, [
+      { uri: 'ext.jpg' },
+      { uri: 'drone.jpg', label: 'Aerial view' },
+      { uri: 'pool.jpg', label: 'Amenities' },
+      { uri: 'plan.jpg', label: 'Master plan' },
+    ]);
   });
 
   it('gives the address with its landmark, and only the distances that were filled in', () => {
@@ -118,6 +132,67 @@ describe('the project summary line', () => {
     assert.equal(unitSummary([unit(2, 1200)]).carpet, '1,200 sq ft carpet');
     assert.deepEqual(unitSummary([unit(undefined, undefined)]), { bhk: undefined, carpet: undefined });
     assert.deepEqual(unitSummary([]), { bhk: undefined, carpet: undefined });
+  });
+});
+
+describe('the unit page', () => {
+  /** Shaped like the live "2 BHK Sundeck" unit (GET /unit-types/:id, 2026-10-26). */
+  const UNIT = {
+    _id: 'u1',
+    config: { name: '2 BHK Sundeck', bedrooms: 2, bathrooms: 2 },
+    area: { carpetSqft: 720, builtUpSqft: 950, superBuiltUpSqft: 1120 },
+    pricing: { pricePerSqft: 20138.9 },
+    facing: ['East', 'North'],
+    furnishing: 'Bare Shell',
+    parking: { covered: 1, open: 0, ev: 0 },
+    floorPlans: { twoDUrl: '', threeDUrl: '', videoUrl: '' },
+    photos: [],
+  } as unknown as UnitType;
+
+  it('lists area, rate and configuration as facts, skipping blanks', () => {
+    assert.deepEqual(
+      unitFacts(UNIT).map((f) => `${f.label}: ${f.value}`),
+      [
+        'Carpet area: 720 sq ft',
+        'Built-up: 950 sq ft',
+        'Super built-up: 1,120 sq ft',
+        'Rate per sq ft: ₹20,139',
+        'Facing: East, North',
+        'Furnishing: Bare Shell',
+        'Parking: 1 covered',
+      ]
+    );
+  });
+
+  it('has no photos of its own when the floor plan links are empty strings', () => {
+    assert.deepEqual(unitPhotos(UNIT), []);
+  });
+
+  it('shows the floor plan first, then room photos labelled by room', () => {
+    const photos = unitPhotos({
+      ...UNIT,
+      floorPlans: { twoDUrl: 'plan.png' },
+      photos: [{ url: 'kitchen.jpg', room: 'Kitchen' }, { url: '' }],
+    } as UnitType);
+    assert.deepEqual(photos, [
+      { uri: 'plan.png', label: 'Floor plan' },
+      { uri: 'kitchen.jpg', label: 'Kitchen' },
+    ]);
+  });
+
+  it('splits highlights typed as one list, and keeps an unsplittable one whole', () => {
+    assert.deepEqual(splitHighlights(['Sea view, Corner unit; Vastu\nHigh floor']), [
+      'Sea view',
+      'Corner unit',
+      'Vastu',
+      'High floor',
+    ]);
+    assert.deepEqual(splitHighlights(['Sundeck Apartment Premium Layout']), ['Sundeck Apartment Premium Layout']);
+  });
+
+  it('reads a bare dado height as feet and leaves a written one alone', () => {
+    assert.equal(formatDadoHeight('7'), '7 ft');
+    assert.equal(formatDadoHeight('Till ceiling'), 'Till ceiling');
   });
 });
 

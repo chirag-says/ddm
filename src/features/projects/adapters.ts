@@ -142,13 +142,87 @@ export function unitSummary(unitTypes: readonly UnitType[]): { bhk?: string; car
   };
 }
 
+/**
+ * A unit's own pictures: floor plans first, they are what a buyer of an
+ * under-construction flat actually looks at, then room photos labelled by
+ * room. Empty on most live units; the screen falls back to project photos.
+ */
+export function unitPhotos(unitType: UnitType): ProjectPhoto[] {
+  const photos: ProjectPhoto[] = [];
+  const plan = text(unitType.floorPlans?.twoDUrl);
+  const plan3d = text(unitType.floorPlans?.threeDUrl);
+  if (plan) photos.push({ uri: plan, label: 'Floor plan' });
+  if (plan3d) photos.push({ uri: plan3d, label: '3D floor plan' });
+  for (const photo of unitType.photos ?? []) {
+    const uri = text(photo?.url);
+    if (!uri) continue;
+    const label = text(photo.room) ?? text(photo.caption);
+    photos.push(label ? { uri, label } : { uri });
+  }
+  return photos;
+}
+
+/**
+ * Highlights as separate items.
+ *
+ * The admin form takes a list, but live units hold one long string ("Sundeck
+ * Apartment Premium Layout Scenic Views...") that rendered as a single
+ * run-on bullet. Commas, semicolons, bullets, pipes and new lines split it;
+ * text with none of those is kept whole, since guessing word boundaries
+ * would invent items the builder never wrote.
+ */
+export function splitHighlights(highlights: readonly unknown[] | undefined): string[] {
+  const out: string[] = [];
+  for (const entry of highlights ?? []) {
+    for (const part of String(entry ?? '').split(/[,;|•\n]+/)) {
+      const item = part.trim();
+      if (item && !out.includes(item)) out.push(item);
+    }
+  }
+  return out;
+}
+
+export type UnitFactKey = 'carpet' | 'builtUp' | 'superBuiltUp' | 'rate' | 'facing' | 'furnishing' | 'parking';
+
+/** Area and configuration as facts for the grid; blanks left out. */
+export function unitFacts(unitType: UnitType): { key: UnitFactKey; label: string; value: string }[] {
+  const sqft = (n: number | undefined) => (n && n > 0 ? `${n.toLocaleString('en-IN')} sq ft` : undefined);
+  const rate = unitType.pricing?.pricePerSqft;
+  const parking = unitType.parking;
+  const parkingText = [
+    parking?.covered ? `${parking.covered} covered` : undefined,
+    parking?.open ? `${parking.open} open` : undefined,
+    parking?.ev ? `${parking.ev} EV` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const facts: { key: UnitFactKey; label: string; value: string | undefined }[] = [
+    { key: 'carpet', label: 'Carpet area', value: sqft(unitType.area?.carpetSqft) },
+    { key: 'builtUp', label: 'Built-up', value: sqft(unitType.area?.builtUpSqft) },
+    { key: 'superBuiltUp', label: 'Super built-up', value: sqft(unitType.area?.superBuiltUpSqft) },
+    // The unit sits in the label: "₹20,139 / sq ft" wrapped in a half-width cell.
+    { key: 'rate', label: 'Rate per sq ft', value: rate && rate > 0 ? `₹${Math.round(rate).toLocaleString('en-IN')}` : undefined },
+    { key: 'facing', label: 'Facing', value: unitType.facing?.filter(Boolean).join(', ') || undefined },
+    { key: 'furnishing', label: 'Furnishing', value: text(unitType.furnishing) },
+    { key: 'parking', label: 'Parking', value: parkingText || undefined },
+  ];
+  return facts.filter((fact): fact is { key: UnitFactKey; label: string; value: string } => Boolean(fact.value));
+}
+
+/** "7" in the dado-height field means feet, the unit Indian spec sheets use. */
+export function formatDadoHeight(value: unknown): string | undefined {
+  const raw = text(value);
+  return raw && /^\d+(\.\d+)?$/.test(raw) ? `${raw} ft` : raw;
+}
+
 export type ConnectivityKind = 'metro' | 'airport' | 'railway' | 'bus';
 
 export interface ProjectDetailView extends ProjectSummary {
   description?: string;
   builderCity?: string;
   /** Exterior, drone, amenity photos, then the master plan; duplicates dropped. */
-  gallery: string[];
+  gallery: ProjectPhoto[];
   /** Only the facts the project actually has; zeros and blanks are left out. */
   facts: { key: ProjectFactKey; label: string; value: string }[];
   /** Names only, deduplicated. Categories are dropped: six headings over ten
@@ -161,6 +235,12 @@ export interface ProjectDetailView extends ProjectSummary {
 }
 
 export type ProjectFactKey = 'possession' | 'launch' | 'towers' | 'units' | 'land';
+
+/** Same shape as the property `GalleryImage`, so both open in `PhotoViewer`. */
+export interface ProjectPhoto {
+  uri: string;
+  label?: string;
+}
 
 // Short labels: they share a half-width column with the distance, and
 // "Railway station · 25 km" wrapped on a 390pt phone.
@@ -185,16 +265,21 @@ export function adaptProjectDetail(project: Project): ProjectDetailView {
   const overview = project.overview;
   const location = project.location;
 
-  const gallery = [
-    ...new Set(
-      [
-        ...(media?.exteriorImages ?? []),
-        ...(media?.droneImages ?? []),
-        ...(media?.amenityImages ?? []),
-        ...(media?.masterPlan ?? []),
-      ].filter((uri): uri is string => typeof uri === 'string' && uri.length > 0)
-    ),
-  ];
+  // Labelled where the label tells the viewer something: a master plan in the
+  // full-screen viewer should say it is one.
+  const gallery: ProjectPhoto[] = [];
+  const seen = new Set<string>();
+  const addPhotos = (uris: readonly unknown[] | undefined, label?: string) => {
+    for (const uri of uris ?? []) {
+      if (typeof uri !== 'string' || !uri || seen.has(uri)) continue;
+      seen.add(uri);
+      gallery.push(label ? { uri, label } : { uri });
+    }
+  };
+  addPhotos(media?.exteriorImages);
+  addPhotos(media?.droneImages, 'Aerial view');
+  addPhotos(media?.amenityImages, 'Amenities');
+  addPhotos(media?.masterPlan, 'Master plan');
 
   const towers = text(overview?.totalTowers);
   const floors = text(overview?.floorsPerTower);

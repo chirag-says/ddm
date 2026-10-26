@@ -1,12 +1,25 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Linking, ScrollView, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Linking, Pressable, ScrollView, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api';
 import { setPendingIntent, useAuth } from '@/auth';
-import { useCreateBooking, useUnitTypeDetail } from '@/features/projects';
+import {
+  adaptProjectDetail,
+  FactGrid,
+  formatDadoHeight,
+  splitHighlights,
+  unitFacts,
+  unitPhotos,
+  useCreateBooking,
+  useProjectDetail,
+  useUnitTypeDetail,
+  type ProjectPhoto,
+  type UnitFactKey,
+} from '@/features/projects';
+import { PhotoViewerModal } from '@/features/properties';
 import { screenPadding, spacing, useTheme } from '@/theme';
 import type { UnitType } from '@/types/backend/project';
 import {
@@ -21,9 +34,22 @@ import {
   ScreenHeader,
   Sheet,
   Skeleton,
+  Tag,
   Text,
   useToast,
 } from '@/ui';
+
+const FACT_ICON: Record<UnitFactKey, keyof typeof Ionicons.glyphMap> = {
+  carpet: 'resize-outline',
+  builtUp: 'square-outline',
+  superBuiltUp: 'scan-outline',
+  rate: 'pricetag-outline',
+  facing: 'compass-outline',
+  furnishing: 'bed-outline',
+  parking: 'car-outline',
+};
+
+const HERO_HEIGHT = 240;
 
 /**
  * One builder unit type, and the one thing a buyer can do about it: enquire.
@@ -33,10 +59,18 @@ import {
  * sheet, its own refusal for units with no token configured, and a payment
  * screen after it. All of that is gone, and `POST /bookings` now records an
  * enquiry whatever the client sends. Group buy went at the same time.
+ *
+ * Laid out like the project page since 2026-10-26: photos first (the unit's
+ * floor plan and rooms, else the project's, all opening full screen), then
+ * price, availability and the size facts in one grid, then one price card and
+ * grouped specifications. It used to open on a price card with no picture,
+ * repeat the list price across two cards, and squeeze spec labels to one
+ * letter a line ("Ma / in / do / or").
  */
 export default function UnitTypeScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { width } = useWindowDimensions();
   const { unitTypeId, resume } = useLocalSearchParams<{ unitTypeId: string; resume?: string }>();
   const { unitType, isLoading, error, refresh } = useUnitTypeDetail(unitTypeId);
   const { status } = useAuth();
@@ -50,8 +84,20 @@ export default function UnitTypeScreen() {
    */
   const [sheetOpen, setSheetOpen] = useState(resume === 'enquiry');
 
-  const projectId =
-    typeof unitType?.project === 'object' ? unitType.project?._id : unitType?.project;
+  const projectRef = typeof unitType?.project === 'object' ? unitType.project : undefined;
+  const projectId = projectRef?._id ?? (typeof unitType?.project === 'string' ? unitType.project : undefined);
+
+  // Usually already cached by the project page this was opened from, so the
+  // fallback photos cost no request.
+  const { project } = useProjectDetail(projectId ?? '');
+
+  const ownPhotos = useMemo(() => (unitType ? unitPhotos(unitType) : []), [unitType]);
+  const projectPhotos = useMemo(() => (project ? adaptProjectDetail(project).gallery : []), [project]);
+  const usingProjectPhotos = ownPhotos.length === 0 && projectPhotos.length > 0;
+  const photos: ProjectPhoto[] = usingProjectPhotos ? projectPhotos : ownPhotos;
+
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
 
   /**
    * Measured, not assumed. The scroll view used a hardcoded `paddingBottom:
@@ -85,8 +131,9 @@ export default function UnitTypeScreen() {
   if (isLoading) {
     return (
       <Screen>
+        <Skeleton height={HERO_HEIGHT} radius={0} />
         <View className="p-base">
-          <Skeleton height={200} radius={16} className="mb-base" />
+          <Skeleton height={28} className="mb-base" />
           <Skeleton height={120} radius={12} />
         </View>
       </Screen>
@@ -102,10 +149,24 @@ export default function UnitTypeScreen() {
   }
 
   const price = unitType.pricing?.effectivePrice ?? unitType.pricing?.basePrice;
-  // `twoDUrl` / `threeDUrl`, not `twoDFloorPlan` — see the note on the type.
-  // This read has been `undefined` since the screen shipped.
-  const floorPlan = unitType.floorPlans?.twoDUrl ?? unitType.floorPlans?.threeDUrl;
   const videoUrl = unitType.floorPlans?.videoUrl;
+  const config = unitType.config;
+  const highlights = splitHighlights(unitType.highlights);
+  const projectLine = [
+    projectRef?.basics?.name,
+    [projectRef?.location?.locality, projectRef?.location?.city].filter(Boolean).join(', '),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const configLine = [
+    config?.bedrooms ? `${config.bedrooms} Bed` : undefined,
+    config?.bathrooms ? `${config.bathrooms} Bath` : undefined,
+    typeof config?.balconies === 'number' && config.balconies > 0
+      ? `${config.balconies} ${config.balconies === 1 ? 'Balcony' : 'Balconies'}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   /**
    * Availability, read from the field that exists. `inventory.available` was
@@ -118,88 +179,126 @@ export default function UnitTypeScreen() {
    * yet".
    */
   const available = unitType.inventory?.availableUnits;
+  const total = unitType.inventory?.totalUnits;
   const hasUnits = typeof available === 'number' && available >= 1;
   const soldOut = typeof available === 'number' && available <= 0;
 
   return (
-    <Screen>
+    // Top only: the action bar pads itself by `insets.bottom`, and the default
+    // bottom edge here doubled it into an empty band under the button.
+    <Screen edges={['top']}>
       {/*
         Back to the PROJECT, not the projects list. This screen is only ever
         reached from a project's unit-type rows, so `/projects` skipped a level
         and dropped the user two screens back from where they were. Falls back
         to the list only when the unit type carries no project reference.
       */}
-      <ScreenHeader
-        title={unitType.config?.name ?? 'Unit type'}
-        backTo={projectId ? `/projects/${projectId}` : '/projects'}
-      />
+      <ScreenHeader title={config?.name ?? 'Unit type'} backTo={projectId ? `/projects/${projectId}` : '/projects'} />
 
-      <ScrollView
-        contentContainerStyle={{
-          padding: screenPadding,
-          paddingBottom: actionBarHeight + spacing.xl,
-        }}
-      >
-        {floorPlan ? (
-          <Image uri={floorPlan} size="full" style={{ width: '100%', height: 220, borderRadius: 12 }} />
+      <ScrollView contentContainerStyle={{ paddingBottom: actionBarHeight + spacing.xl }}>
+        {photos.length > 0 ? (
+          <View style={{ height: HERO_HEIGHT }}>
+            <FlatList
+              data={photos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(photo, index) => `${photo.uri}-${index}`}
+              initialNumToRender={1}
+              windowSize={3}
+              getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+              onMomentumScrollEnd={(event) => setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / width))}
+              renderItem={({ item, index }) => (
+                <Pressable
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`Open ${item.label ?? 'photo'} ${index + 1} of ${photos.length} full screen`}
+                  onPress={() => setViewerAt(index)}
+                >
+                  <Image uri={item.uri} size="medium" style={{ width, height: HERO_HEIGHT }} />
+                </Pressable>
+              )}
+            />
+            {/* Said on the photo, so a project render is not taken for this flat. */}
+            {usingProjectPhotos ? (
+              <PhotoTag icon="business-outline" label="Project photos" style={{ left: spacing.md }} />
+            ) : photos[photoIndex]?.label ? (
+              <PhotoTag icon="image-outline" label={photos[photoIndex].label!} style={{ left: spacing.md }} />
+            ) : null}
+            {photos.length > 1 ? (
+              <PhotoTag icon="images-outline" label={`${photoIndex + 1}/${photos.length}`} style={{ right: spacing.md }} />
+            ) : null}
+          </View>
         ) : null}
 
-        <Card className="mt-base">
-          {price ? <PriceLabel price={price} variant="title1" /> : null}
-          <View className="mt-sm flex-row flex-wrap">
-            {unitType.config?.bedrooms ? (
-              <SpecChip label={`${unitType.config.bedrooms} Bed`} />
-            ) : null}
-            {unitType.config?.bathrooms ? (
-              <SpecChip label={`${unitType.config.bathrooms} Bath`} />
-            ) : null}
-            {hasUnits ? <SpecChip label={`${available} available`} /> : null}
-          </View>
-        </Card>
-
-        {unitType.highlights && unitType.highlights.length > 0 ? (
-          <Card className="mt-base">
-            <Text variant="bodyEmphasis" className="mb-sm">
-              Highlights
+        <View style={{ padding: screenPadding }}>
+          {/* The unit's name is the nav bar title, so it is not repeated here. */}
+          {projectLine ? (
+            <Text variant="footnote" tone="secondary" numberOfLines={1}>
+              {projectLine}
             </Text>
-            {unitType.highlights.map((h) => (
-              <View key={h} className="mb-xs flex-row items-start">
-                <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
-                <Text variant="body" className="ml-sm flex-1">
-                  {h}
+          ) : null}
+          {configLine ? (
+            <Text variant="callout" className="mt-xs">
+              {configLine}
+            </Text>
+          ) : null}
+
+          <View className="mt-base flex-row items-center justify-between">
+            {price ? <PriceLabel price={price} variant="title1" /> : <View />}
+            {hasUnits ? (
+              <Badge
+                tone="success"
+                label={typeof total === 'number' && total >= available ? `${available} of ${total} left` : `${available} left`}
+              />
+            ) : soldOut ? (
+              <Badge tone="danger" label="Sold out" />
+            ) : null}
+          </View>
+
+          <FactGrid
+            className="mt-lg"
+            facts={unitFacts(unitType).map((fact) => ({ ...fact, icon: FACT_ICON[fact.key] }))}
+          />
+
+          {highlights.length > 0 ? (
+            <Section title="Highlights">
+              {/* Separate items read as tags; one unsplittable string reads as a sentence. */}
+              {highlights.length > 1 ? (
+                <View className="flex-row flex-wrap gap-sm">
+                  {highlights.map((item) => (
+                    <Tag key={item} label={item} icon="checkmark-circle" />
+                  ))}
+                </View>
+              ) : (
+                <Text variant="body" tone="secondary">
+                  {highlights[0]}
+                </Text>
+              )}
+            </Section>
+          ) : null}
+
+          <PriceCard unitType={unitType} />
+          <SpecsCard specs={unitType.specifications} />
+          <TowerCard inventory={unitType.inventory} />
+
+          {videoUrl ? (
+            /*
+              Linked, never embedded. The field is free-text and admins paste
+              YouTube links, Drive links and raw MP4s into it interchangeably —
+              a player that assumes any one of those is broken for the other two,
+              and the website made the same call for the same reason.
+            */
+            <Card className="mt-xl flex-row items-center justify-between" onPress={() => void Linking.openURL(videoUrl)}>
+              <View className="flex-1 pr-base">
+                <Text variant="bodyEmphasis">Video tour</Text>
+                <Text variant="footnote" tone="secondary" className="mt-xs">
+                  Opens outside the app
                 </Text>
               </View>
-            ))}
-          </Card>
-        ) : null}
-
-        <AreaCard unitType={unitType} />
-        <PriceBreakdown unitType={unitType} />
-        <CostSheet unitType={unitType} />
-        <SpecsCard specs={unitType.specifications} />
-        <InventoryCard inventory={unitType.inventory} />
-        <InteriorPhotos photos={unitType.photos} />
-
-        {videoUrl ? (
-          /*
-            Linked, never embedded. The field is free-text and admins paste
-            YouTube links, Drive links and raw MP4s into it interchangeably —
-            a player that assumes any one of those is broken for the other two,
-            and the website made the same call for the same reason.
-          */
-          <Card
-            className="mt-base flex-row items-center justify-between"
-            onPress={() => void Linking.openURL(videoUrl)}
-          >
-            <View className="flex-1 pr-base">
-              <Text variant="bodyEmphasis">Video tour</Text>
-              <Text variant="footnote" tone="secondary" className="mt-xs">
-                Opens outside the app
-              </Text>
-            </View>
-            <Ionicons name="play-circle" size={28} color={theme.colors.accent} />
-          </Card>
-        ) : null}
+              <Ionicons name="play-circle" size={28} color={theme.colors.accent} />
+            </Card>
+          ) : null}
+        </View>
       </ScrollView>
 
       {/*
@@ -226,12 +325,7 @@ export default function UnitTypeScreen() {
           </Text>
         ) : null}
 
-        <Button
-          label="Enquire about this unit"
-          disabled={!hasUnits}
-          fullWidth
-          onPress={openSheet}
-        />
+        <Button label="Enquire about this unit" disabled={!hasUnits} fullWidth onPress={openSheet} />
       </View>
 
       {projectId ? (
@@ -242,12 +336,44 @@ export default function UnitTypeScreen() {
           unitTypeId={unitType._id}
         />
       ) : null}
+
+      <PhotoViewerModal images={photos} openAt={viewerAt} onClose={() => setViewerAt(null)} />
     </Screen>
   );
 }
 
-function SpecChip({ label }: { label: string }) {
-  return <Badge label={label} className="mb-xs mr-sm" />;
+function PhotoTag({
+  icon,
+  label,
+  style,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  style: { left?: number; right?: number };
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      className="flex-row items-center rounded-full px-sm py-xs"
+      style={{ position: 'absolute', bottom: spacing.md, backgroundColor: 'rgba(0,0,0,0.6)', ...style }}
+    >
+      <Ionicons name={icon} size={13} color="#FFFFFF" />
+      <Text variant="caption" style={{ color: '#FFFFFF', marginLeft: 4 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View className="mt-xl">
+      <Text variant="title3" className="mb-sm">
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
 }
 
 /** ₹ with Indian digit grouping. */
@@ -255,295 +381,202 @@ function rupees(value: number): string {
   return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
-/** One label/value line. The unit page is mostly these. */
-function Row({
-  label,
-  value,
-  emphasis = false,
-  tone,
-}: {
-  label: string;
-  value: string;
-  emphasis?: boolean;
-  tone?: 'secondary' | 'success';
-}) {
+/**
+ * One label/value line.
+ *
+ * The label keeps a fixed share of the row and the value takes the rest,
+ * wrapping and right-aligned. The label used to be the flexible side, so a
+ * long value ("Decorative Laminated Flush Door") squeezed "Main door" to one
+ * letter a line.
+ */
+function Row({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+  const variant = emphasis ? 'bodyEmphasis' : 'body';
   return (
-    <View className="flex-row items-baseline justify-between py-xs">
-      <Text variant={emphasis ? 'bodyEmphasis' : 'body'} tone={tone === 'success' ? 'primary' : 'secondary'} className="flex-1 pr-base">
+    <View className="flex-row items-start py-xs">
+      <Text variant={variant} tone={emphasis ? 'primary' : 'secondary'} style={{ width: '42%' }} className="pr-sm">
         {label}
       </Text>
-      <Text variant={emphasis ? 'bodyEmphasis' : 'body'} tone={tone === 'success' ? 'success' : 'primary'}>
+      <Text variant={variant} className="flex-1 text-right">
         {value}
       </Text>
     </View>
   );
 }
 
-function AreaCard({ unitType }: { unitType: UnitType }) {
-  const area = unitType.area;
-  if (!area) return null;
-
-  const rows: [string, string][] = [];
-  if (area.carpetSqft) rows.push(['Carpet area', `${area.carpetSqft} sq.ft`]);
-  if (area.builtUpSqft) rows.push(['Built-up area', `${area.builtUpSqft} sq.ft`]);
-  if (area.superBuiltUpSqft) rows.push(['Super built-up', `${area.superBuiltUpSqft} sq.ft`]);
-  if (area.plotAreaSqft) rows.push(['Plot area', `${area.plotAreaSqft} sq.ft`]);
-
-  const dims = area.plotDimensions;
-  if (dims?.length && dims?.width) rows.push(['Plot dimensions', `${dims.length} × ${dims.width} ft`]);
-  if (unitType.pricing?.pricePerSqft) {
-    rows.push(['Rate', `${rupees(unitType.pricing.pricePerSqft)} / sq.ft`]);
-  }
-  if (unitType.furnishing) rows.push(['Furnishing', unitType.furnishing]);
-  if (unitType.facing?.length) rows.push(['Facing', unitType.facing.join(', ')]);
-
-  const parking = unitType.parking;
-  const parkingParts = [
-    parking?.covered ? `${parking.covered} covered` : null,
-    parking?.open ? `${parking.open} open` : null,
-    parking?.ev ? `${parking.ev} EV` : null,
-  ].filter(Boolean);
-  if (parkingParts.length) rows.push(['Parking', parkingParts.join(' · ')]);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <Card className="mt-base">
-      <Text variant="bodyEmphasis" className="mb-sm">
-        Area and configuration
-      </Text>
-      {rows.map(([label, value]) => (
-        <Row key={label} label={label} value={value} />
-      ))}
-    </Card>
-  );
+function Divider() {
+  return <View className="my-xs border-t border-border" />;
 }
 
 /**
- * What makes up the list price.
+ * What the buyer pays, in one card.
  *
- * `effectivePrice` is base + these charges + view premium, computed in a
- * pre-save hook on the server. Showing the parts matters because the headline
- * figure is otherwise unexplained — a buyer comparing two projects needs to
- * know whether parking and clubhouse are inside the number or waiting after it.
+ * Base price plus the builder's charges makes the list price, the headline
+ * figure (`effectivePrice` is that sum, computed server-side). Government
+ * charges come after it and are labelled indicative: GST, stamp duty and
+ * registration are deliberately kept OUT of `effectivePrice` server-side, so
+ * they are added here, with the percentages shown so the arithmetic can be
+ * checked. These were two cards that each restated the list price.
  */
-function PriceBreakdown({ unitType }: { unitType: UnitType }) {
+function PriceCard({ unitType }: { unitType: UnitType }) {
   const pricing = unitType.pricing;
   const charges = pricing?.additionalCharges;
   const base = pricing?.basePrice ?? 0;
+  const list = pricing?.effectivePrice ?? base;
 
-  const candidates: [string, number][] = [
-    ['PLC', charges?.plc ?? 0],
-    ['Parking', charges?.parking ?? 0],
-    ['Clubhouse', charges?.clubhouse ?? 0],
-    ['Legal', charges?.legal ?? 0],
-    ['Maintenance', charges?.maintenance ?? 0],
-    ['View premium', pricing?.viewPremium ?? 0],
-  ];
-  const lines = candidates.filter(([, value]) => value > 0);
+  const builderLines = (
+    [
+      ['PLC', charges?.plc ?? 0],
+      ['Parking', charges?.parking ?? 0],
+      ['Clubhouse', charges?.clubhouse ?? 0],
+      ['Legal', charges?.legal ?? 0],
+      ['Maintenance', charges?.maintenance ?? 0],
+      ['View premium', pricing?.viewPremium ?? 0],
+    ] as [string, number][]
+  ).filter(([, value]) => value > 0);
 
-  if (!base || lines.length === 0) return null;
+  const terms = unitType.paymentTerms;
+  const gst = terms?.gstPercentage ? Math.round((list * terms.gstPercentage) / 100) : 0;
+  const stamp = terms?.stampDutyPercentage ? Math.round((list * terms.stampDutyPercentage) / 100) : 0;
+  const registration = terms?.registrationCharges ?? 0;
+  const hasGovernment = gst > 0 || stamp > 0 || registration > 0;
+
+  // Nothing to explain: the headline price above already says it all.
+  if (!list || (builderLines.length === 0 && !hasGovernment)) return null;
 
   return (
-    <Card className="mt-base">
-      <Text variant="bodyEmphasis" className="mb-sm">
-        Price breakdown
-      </Text>
-      <Row label="Base price" value={rupees(base)} />
-      {lines.map(([label, value]) => (
-        <Row key={label} label={label} value={rupees(value)} />
-      ))}
-      {pricing?.effectivePrice ? (
-        <View className="mt-xs border-t border-border pt-sm">
-          <Row label="List price" value={rupees(pricing.effectivePrice)} emphasis />
-        </View>
-      ) : null}
-    </Card>
+    <Section title="Price breakdown">
+      <Card>
+        {builderLines.length > 0 && base ? (
+          <>
+            <Row label="Base price" value={rupees(base)} />
+            {builderLines.map(([label, value]) => (
+              <Row key={label} label={label} value={rupees(value)} />
+            ))}
+            <Divider />
+          </>
+        ) : null}
+        <Row label="List price" value={rupees(list)} emphasis />
+
+        {hasGovernment ? (
+          <>
+            {gst > 0 ? <Row label={`GST (${terms?.gstPercentage}%)`} value={rupees(gst)} /> : null}
+            {stamp > 0 ? <Row label={`Stamp duty (${terms?.stampDutyPercentage}%)`} value={rupees(stamp)} /> : null}
+            {registration > 0 ? <Row label="Registration" value={rupees(registration)} /> : null}
+            <Divider />
+            <Row label="All-inclusive" value={rupees(list + gst + stamp + registration)} emphasis />
+            <Text variant="caption" tone="muted" className="mt-sm">
+              Government charges are indicative. They vary by state and are confirmed at registration.
+            </Text>
+          </>
+        ) : null}
+      </Card>
+    </Section>
   );
 }
 
 /**
- * The all-inclusive figure.
+ * Specifications, grouped the way spec sheets group them.
  *
- * GST, stamp duty and registration are deliberately kept OUT of
- * `effectivePrice` server-side — they are government charges, not list price,
- * and folding them in would misstate the comparison against every other
- * listing. So they are added here instead, and only here, with the percentages
- * shown so the arithmetic is checkable.
- *
- * Hidden entirely when none of the three is configured: a "total" identical to
- * the price above it teaches the buyer nothing and implies there is nothing
- * more to pay, which is a promise this data cannot make.
+ * Booleans read as absent when false, which is correct: "no modular kitchen"
+ * is not a specification anyone advertises, and rendering it as a row would
+ * turn an unfilled field into a stated negative.
  */
-function CostSheet({ unitType }: { unitType: UnitType }) {
-  const terms = unitType.paymentTerms;
-  const base = unitType.pricing?.effectivePrice ?? unitType.pricing?.basePrice ?? 0;
-
-  const gst = terms?.gstPercentage ? Math.round((base * terms.gstPercentage) / 100) : 0;
-  const stamp = terms?.stampDutyPercentage
-    ? Math.round((base * terms.stampDutyPercentage) / 100)
-    : 0;
-  const registration = terms?.registrationCharges ?? 0;
-
-  if (!base || (gst === 0 && stamp === 0 && registration === 0)) return null;
-
-  return (
-    <Card className="mt-base">
-      <Text variant="bodyEmphasis" className="mb-sm">
-        All-inclusive cost
-      </Text>
-      <Row label="List price" value={rupees(base)} />
-      {gst > 0 ? <Row label={`GST (${terms?.gstPercentage}%)`} value={rupees(gst)} /> : null}
-      {stamp > 0 ? (
-        <Row label={`Stamp duty (${terms?.stampDutyPercentage}%)`} value={rupees(stamp)} />
-      ) : null}
-      {registration > 0 ? <Row label="Registration" value={rupees(registration)} /> : null}
-      <View className="mt-xs border-t border-border pt-sm">
-        <Row label="Total" value={rupees(base + gst + stamp + registration)} emphasis />
-      </View>
-      <Text variant="caption" tone="muted" className="mt-sm">
-        Indicative. Government charges vary by state and are confirmed at registration.
-      </Text>
-    </Card>
-  );
-}
-
 function SpecsCard({ specs }: { specs: UnitType['specifications'] }) {
   if (!specs) return null;
 
-  const rows: [string, string][] = [];
-  const add = (label: string, value: unknown) => {
-    if (typeof value === 'string' && value.trim()) rows.push([label, value.trim()]);
-  };
+  const clean = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
+  const extras = (...flags: (string | false | undefined)[]) => flags.filter(Boolean).join(', ') || undefined;
+  const acPoints = specs.electrical?.acPointsPerRoom;
 
-  add('Structure', specs.structure);
-  add('Living / dining floor', specs.flooring?.livingDining);
-  add('Bedroom floor', specs.flooring?.bedrooms);
-  add('Kitchen floor', specs.flooring?.kitchen);
-  add('Bathroom floor', specs.flooring?.bathroom);
-  add('Balcony floor', specs.flooring?.balcony);
-  add('Kitchen countertop', specs.kitchen?.countertop);
-  add('Sink', specs.kitchen?.sink);
-  add('Sanitaryware', specs.bathroom?.sanitaryBrand);
-  add('Bath fittings', specs.bathroom?.fittingsBrand);
-  add('Dado height', specs.bathroom?.dadoHeight);
-  add('Main door', specs.doors?.mainDoor);
-  add('Internal doors', specs.doors?.internalDoors);
-  add('Windows', specs.windows?.type);
-  add('Wiring', specs.electrical?.wiringType);
-  add('Switches', specs.electrical?.switchBrand);
+  const allGroups: { title: string; rows: [string, string | undefined][] }[] = [
+    { title: 'Structure', rows: [['Frame', clean(specs.structure)]] },
+    {
+      title: 'Flooring',
+      rows: [
+        ['Living / dining', clean(specs.flooring?.livingDining)],
+        ['Bedrooms', clean(specs.flooring?.bedrooms)],
+        ['Kitchen', clean(specs.flooring?.kitchen)],
+        ['Bathroom', clean(specs.flooring?.bathroom)],
+        ['Balcony', clean(specs.flooring?.balcony)],
+      ],
+    },
+    {
+      title: 'Kitchen',
+      rows: [
+        ['Countertop', clean(specs.kitchen?.countertop)],
+        ['Sink', clean(specs.kitchen?.sink)],
+        ['Includes', extras(specs.kitchen?.isModular && 'Modular kitchen', specs.kitchen?.chimney && 'Chimney')],
+      ],
+    },
+    {
+      title: 'Bathroom',
+      rows: [
+        ['Sanitaryware', clean(specs.bathroom?.sanitaryBrand)],
+        ['Fittings', clean(specs.bathroom?.fittingsBrand)],
+        ['Dado height', formatDadoHeight(specs.bathroom?.dadoHeight)],
+      ],
+    },
+    {
+      title: 'Doors and windows',
+      rows: [
+        ['Main door', clean(specs.doors?.mainDoor)],
+        ['Internal doors', clean(specs.doors?.internalDoors)],
+        ['Windows', extras(clean(specs.windows?.type), specs.windows?.mosquitoMesh && 'mosquito mesh')],
+      ],
+    },
+    {
+      title: 'Electrical',
+      rows: [
+        ['Wiring', clean(specs.electrical?.wiringType)],
+        ['Switches', clean(specs.electrical?.switchBrand)],
+        ['AC points', acPoints ? `${acPoints} per room` : undefined],
+      ],
+    },
+  ];
+  const groups = allGroups
+    .map((group) => ({ ...group, rows: group.rows.filter((row) => Boolean(row[1])) }))
+    .filter((group) => group.rows.length > 0);
 
-  // Booleans read as absent when false, which is correct: "no modular kitchen"
-  // is not a specification anyone advertises, and rendering it as a row would
-  // turn an unfilled field into a stated negative.
-  const flags = [
-    specs.kitchen?.isModular ? 'Modular kitchen' : null,
-    specs.kitchen?.chimney ? 'Chimney' : null,
-    specs.windows?.mosquitoMesh ? 'Mosquito mesh' : null,
-    specs.electrical?.acPointsPerRoom
-      ? `${specs.electrical.acPointsPerRoom} AC point${specs.electrical.acPointsPerRoom === 1 ? '' : 's'} per room`
-      : null,
-  ].filter(Boolean) as string[];
-
-  if (rows.length === 0 && flags.length === 0) return null;
-
-  return (
-    <Card className="mt-base">
-      <Text variant="bodyEmphasis" className="mb-sm">
-        Specifications
-      </Text>
-      {rows.map(([label, value]) => (
-        <Row key={label} label={label} value={value} />
-      ))}
-      {flags.length > 0 ? (
-        <View className="mt-sm flex-row flex-wrap">
-          {flags.map((flag) => (
-            <SpecChip key={flag} label={flag} />
-          ))}
-        </View>
-      ) : null}
-    </Card>
-  );
-}
-
-function InventoryCard({ inventory }: { inventory: UnitType['inventory'] }) {
-  if (!inventory) return null;
-
-  const { availableUnits, bookedUnits, totalUnits, towerAllocation } = inventory;
-  if (availableUnits == null && totalUnits == null) return null;
+  if (groups.length === 0) return null;
 
   return (
-    <Card className="mt-base">
-      <Text variant="bodyEmphasis" className="mb-sm">
-        Availability
-      </Text>
-      {availableUnits != null ? (
-        <Row label="Available" value={`${availableUnits} units`} tone="success" />
-      ) : null}
-      {bookedUnits != null && bookedUnits > 0 ? (
-        <Row label="Booked" value={`${bookedUnits} units`} />
-      ) : null}
-      {totalUnits != null ? <Row label="Total" value={`${totalUnits} units`} /> : null}
-
-      {Array.isArray(towerAllocation) && towerAllocation.length > 0 ? (
-        <View className="mt-sm border-t border-border pt-sm">
-          <Text variant="footnote" tone="secondary" className="mb-xs">
-            By tower
-          </Text>
-          {towerAllocation.map((entry, index) => {
-            const tower = entry as { tower?: string; units?: number };
-            if (!tower?.tower) return null;
-            return (
-              <Row
-                key={`${tower.tower}-${index}`}
-                label={tower.tower}
-                value={`${tower.units ?? 0} units`}
-              />
-            );
-          })}
-        </View>
-      ) : null}
-    </Card>
-  );
-}
-
-/** Interior photos, grouped by the room they belong to. */
-function InteriorPhotos({ photos }: { photos: UnitType['photos'] }) {
-  if (!photos || photos.length === 0) return null;
-
-  const grouped = new Map<string, { url: string; caption?: string }[]>();
-  for (const photo of photos) {
-    if (!photo?.url) continue;
-    const room = photo.room?.trim() || 'Other';
-    const bucket = grouped.get(room) ?? [];
-    bucket.push({ url: photo.url, caption: photo.caption });
-    grouped.set(room, bucket);
-  }
-  if (grouped.size === 0) return null;
-
-  return (
-    <View className="mt-base">
-      <Text variant="title3" className="mb-sm">
-        Interiors
-      </Text>
-      {[...grouped.entries()].map(([room, items]) => (
-        <View key={room} className="mb-base">
-          <Text variant="footnote" tone="secondary" className="mb-xs">
-            {room}
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {items.map((item, index) => (
-              <Image
-                key={`${item.url}-${index}`}
-                uri={item.url}
-                size="medium"
-                style={{ width: 220, height: 150, borderRadius: 12, marginRight: spacing.sm }}
-              />
+    <Section title="Specifications">
+      <Card>
+        {groups.map((group, index) => (
+          <View key={group.title} className={index > 0 ? 'mt-base border-t border-border pt-sm' : undefined}>
+            <Text variant="footnote" tone="muted" className="mb-xs">
+              {group.title}
+            </Text>
+            {group.rows.map(([label, value]) => (
+              <Row key={label} label={label} value={value!} />
             ))}
-          </ScrollView>
-        </View>
-      ))}
-    </View>
+          </View>
+        ))}
+      </Card>
+    </Section>
+  );
+}
+
+/**
+ * Units per tower, only where towers are named. The overall count is the
+ * badge beside the price; live data carries `towerAllocation` entries with no
+ * tower at all, which used to leave a "By tower" heading over nothing.
+ */
+function TowerCard({ inventory }: { inventory: UnitType['inventory'] }) {
+  const towers = (Array.isArray(inventory?.towerAllocation) ? inventory.towerAllocation : [])
+    .map((entry) => entry as { tower?: string; units?: number })
+    .filter((entry) => typeof entry?.tower === 'string' && entry.tower.trim());
+
+  if (towers.length === 0) return null;
+
+  return (
+    <Section title="Units by tower">
+      <Card>
+        {towers.map((entry, index) => (
+          <Row key={`${entry.tower}-${index}`} label={entry.tower!} value={`${entry.units ?? 0} units`} />
+        ))}
+      </Card>
+    </Section>
   );
 }
 
