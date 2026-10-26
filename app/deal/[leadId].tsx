@@ -331,7 +331,7 @@ function DealBody({
             padded={false}
             className="flex-row items-center overflow-hidden"
             onPress={property ? () => router.push(`/property/${property.id}`) : undefined}
-            accessibilityLabel={property ? `Open listing ${property.title}` : undefined}
+            accessibilityLabel={property ? `Open property ${property.title}` : undefined}
           >
             <View
               style={{
@@ -372,7 +372,7 @@ function DealBody({
                 </>
               ) : (
                 <Text variant="body" tone="muted">
-                  Listing no longer available
+                  Property no longer available
                 </Text>
               )}
             </View>

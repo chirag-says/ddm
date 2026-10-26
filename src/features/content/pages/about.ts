@@ -38,7 +38,7 @@ export const aboutPage: ContentPage = {
     {
       id: 'advantage',
       title: 'The Deal Direct Advantage',
-      blurb: "We're not just another property listing site. Here's what makes us different.",
+      blurb: "We're not just another property website. Here's what makes us different.",
       icon: 'sparkles-outline',
       blocks: [
         {
@@ -47,7 +47,7 @@ export const aboutPage: ContentPage = {
             {
               icon: 'shield-checkmark-outline',
               title: 'Verified Mobile Numbers',
-              text: 'Owners must confirm their mobile number with a one-time code before they can post a listing.',
+              text: 'Owners must confirm their mobile number with a one-time code before they can post a property.',
             },
             {
               icon: 'hand-left-outline',
@@ -80,7 +80,7 @@ export const aboutPage: ContentPage = {
               icon: 'shield-outline',
               title: 'The Power of "One"',
               meta: 'Anti-spam policy',
-              text: 'To keep listings **high-quality**, we enforce a **Strict 1-Post Per User** rule.\n\n**Why?** This prevents brokers from flooding the site with duplicate listings.\n\n**The Result:** Fewer duplicate listings and less clutter.',
+              text: 'To keep properties **high-quality**, we enforce a **Strict 1-Post Per User** rule.\n\n**Why?** This prevents brokers from flooding the site with duplicate posts.\n\n**The Result:** Fewer duplicate posts and less clutter.',
             },
             {
               icon: 'cash-outline',
@@ -92,7 +92,7 @@ export const aboutPage: ContentPage = {
               icon: 'gift-outline',
               title: 'Participate & Get Rewarded',
               meta: 'Earn at every step',
-              text: 'Unlike other sites that just take your data, we **value your engagement**. Our ecosystem rewards you at every step:\n\n**Post a Property:** Earn rewards just for listing your space.\n\n**Make Enquiries:** Get credited for being an active seeker.\n\n**Close the Deal:** We celebrate your success with special rewards once your transaction is complete.',
+              text: 'Unlike other sites that just take your data, we **value your engagement**. Our ecosystem rewards you at every step:\n\n**Post a Property:** Earn rewards just for posting your property.\n\n**Make Enquiries:** Get credited for being an active seeker.\n\n**Close the Deal:** We celebrate your success with special rewards once your transaction is complete.',
             },
             {
               icon: 'people-outline',
@@ -135,7 +135,7 @@ export const aboutPage: ContentPage = {
           type: 'actions',
           items: [
             { label: 'Browse properties', href: '/(tabs)/search', variant: 'primary' },
-            { label: 'List your property', href: '/owner/property/new', variant: 'secondary' },
+            { label: 'Post your property', href: '/owner/property/new', variant: 'secondary' },
             { label: 'Contact us', href: '/legal/contact', variant: 'secondary' },
           ],
         },

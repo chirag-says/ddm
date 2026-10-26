@@ -103,9 +103,9 @@ function DeleteAccountScreen() {
       // against.
       toast.show(
         response.retainedListings
-          ? `Account deleted. ${response.retainedListings} listing${
-              response.retainedListings === 1 ? '' : 's'
-            } tied to a live deal were kept on record.`
+          ? `Account deleted. ${response.retainedListings} ${
+              response.retainedListings === 1 ? 'property' : 'properties'
+            } tied to a live deal ${response.retainedListings === 1 ? 'was' : 'were'} kept on record.`
           : 'Your account has been deleted.'
       );
       router.replace('/(auth)/login');
@@ -132,7 +132,7 @@ function DeleteAccountScreen() {
             This cannot be undone
           </Text>
           <Text variant="footnote" className="mt-xs">
-            Your profile, listings, saved properties, conversations and reward balance are
+            Your profile, your posted properties, saved properties, conversations and reward balance are
             permanently removed. Any leads you have generated for owners are not affected.
           </Text>
         </View>

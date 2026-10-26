@@ -56,7 +56,7 @@ export function ListingCard({ state, onPress }: ListingCardProps) {
   const detail =
     state.kind === 'ownerListed'
       ? state.newLeads === null
-        ? 'Your listing and its enquiries'
+        ? 'Your property and its enquiries'
         : state.newLeads > 0
           ? `${state.newLeads} new ${state.newLeads === 1 ? 'enquiry' : 'enquiries'} to respond to`
           : 'No new enquiries right now'
@@ -109,23 +109,23 @@ const COPY: Record<
   { title: string; detail: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
   guest: {
-    title: 'List your property',
+    title: 'Post your property',
     detail: 'Free to post, and buyers contact you directly.',
     icon: 'add-circle-outline',
   },
   buyer: {
-    title: 'List your property',
-    detail: 'Verify your phone number to post a listing.',
+    title: 'Post your property',
+    detail: 'Verify your phone number to post a property.',
     icon: 'add-circle-outline',
   },
   ownerEmpty: {
-    title: 'Post your listing',
-    detail: 'Owner accounts can hold one active listing.',
+    title: 'Post your property',
+    detail: 'Owner accounts can have one active property.',
     icon: 'add-circle-outline',
   },
   ownerListed: {
-    title: 'Your listing',
-    detail: 'Your listing and its enquiries',
+    title: 'Your property',
+    detail: 'Your property and its enquiries',
     icon: 'home-outline',
   },
 };

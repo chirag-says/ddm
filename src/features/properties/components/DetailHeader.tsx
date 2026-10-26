@@ -175,7 +175,7 @@ export function DetailHeader({ title, scrollY, onBack, onShare }: DetailHeaderPr
 
           <HeaderControl
             icon="share-outline"
-            label="Share listing"
+            label="Share property"
             onPress={onShare}
             progress={progress}
           />

@@ -294,7 +294,7 @@ const HOW_LEADS_WORK: { icon: keyof typeof Ionicons.glyphMap; title: string; bod
   {
     icon: 'hand-left-outline',
     title: 'A buyer taps "I\'m interested"',
-    body: 'On your listing. Each buyer can do this on five listings at a time, so it is a real signal.',
+    body: 'On your property. Each buyer can do this on five properties at a time, so it is a real signal.',
   },
   {
     icon: 'call-outline',
@@ -327,8 +327,8 @@ function NoLeadsYet({ onViewListings }: { onViewListings: () => void }) {
           </View>
         }
         title="No leads yet"
-        description="When a buyer is interested in your listing, they appear here with their name, phone and email."
-        actionLabel="See my listings"
+        description="When a buyer is interested in your property, they appear here with their name, phone and email."
+        actionLabel="See my property"
         onAction={onViewListings}
       />
 

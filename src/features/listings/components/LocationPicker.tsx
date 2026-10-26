@@ -270,7 +270,7 @@ export function LocationPicker({
       ) : (
         <Text variant="footnote" tone="muted" className="mt-sm">
           {mapAvailable
-            ? 'No pin yet. Your listing still publishes without one.'
+            ? 'No pin yet. Your property still publishes without one.'
             : 'No pin yet.'}
         </Text>
       )}

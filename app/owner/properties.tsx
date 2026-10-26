@@ -47,7 +47,7 @@ function MyPropertiesScreenContent() {
    * The confirmation that follows is a toast, because that is an answer.
    */
   const handleDelete = (id: string, title: string) => {
-    Alert.alert('Delete listing', `Remove "${title}" permanently? This cannot be undone.`, [
+    Alert.alert('Delete property', `Remove "${title}" permanently? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -59,9 +59,9 @@ function MyPropertiesScreenContent() {
         onPress: async () => {
           try {
             await remove(id);
-            toast.show('Listing deleted.');
+            toast.show('Property deleted.');
           } catch {
-            toast.show('Could not delete that listing. Please try again.', 'danger');
+            toast.show('Could not delete that property. Please try again.', 'danger');
           }
         },
       },
@@ -74,13 +74,13 @@ function MyPropertiesScreenContent() {
           owner account is capped at one listing server-side, so the control
           would 400 if shown beside an existing one. */}
       <ScreenHeader
-        title="My listing"
+        title="My property"
         backTo="/(tabs)/profile"
         actions={
           properties.length === 0 && !isLoading ? (
             <HeaderAction
               icon="add"
-              label="Add a listing"
+              label="Post a property"
               tone="accent"
               onPress={() => router.push('/owner/property/new')}
             />
@@ -93,12 +93,12 @@ function MyPropertiesScreenContent() {
           <Skeleton height={220} radius={16} />
         </View>
       ) : error ? (
-        <ErrorState title="Could not load your listing" onRetry={refresh} />
+        <ErrorState title="Could not load your property" onRetry={refresh} />
       ) : properties.length === 0 ? (
         <EmptyState
-          title="You have no listing yet"
+          title="You have not posted a property yet"
           description="Owner accounts can post one property. Add yours to start receiving leads."
-          actionLabel="Add a listing"
+          actionLabel="Post a property"
           onAction={() => router.push('/owner/property/new')}
         />
       ) : (
@@ -180,7 +180,7 @@ function MyPropertiesScreenContent() {
                   */}
                   <View className="mt-base flex-row" style={{ gap: spacing.sm }}>
                     <Button
-                      label="Edit listing"
+                      label="Edit property"
                       size="sm"
                       className="flex-1"
                       onPress={() => router.push(`/owner/property/${property._id}/edit`)}
@@ -210,7 +210,7 @@ function MyPropertiesScreenContent() {
                   >
                     <Ionicons name="trash-outline" size={14} color={theme.colors.danger} />
                     <Text variant="footnote" tone="danger" className="ml-xs">
-                      Delete listing
+                      Delete property
                     </Text>
                   </Pressable>
                 </View>
@@ -232,7 +232,7 @@ function MyPropertiesScreenContent() {
             that as the app being broken. One line here is the whole fix.
           */}
           <Text variant="caption" tone="muted" className="mt-md text-center">
-            Owner accounts can hold one active listing. Close or delete this one
+            Owner accounts can have one active property. Close or delete this one
             to post another.
           </Text>
         </Refreshable>
@@ -293,7 +293,7 @@ function OwnerStat({ label, value }: { label: string; value: number }) {
  */
 export default function MyPropertiesScreen() {
   return (
-    <OwnerOnly title="My listing">
+    <OwnerOnly title="My property">
       <MyPropertiesScreenContent />
     </OwnerOnly>
   );

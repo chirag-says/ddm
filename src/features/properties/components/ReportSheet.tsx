@@ -27,12 +27,12 @@ import { Button, Chip, Input, Sheet, Text } from '@/ui';
  */
 
 const PRESET_REASONS = [
-  'This listing appears to be fake',
+  'This property appears to be fake',
   'The photos do not match the property',
   'The price is misleading',
   'This property is already sold or rented',
   'The owner is unreachable or unresponsive',
-  'This listing contains offensive content',
+  'This property contains offensive content',
 ];
 
 const MIN_REASON_LENGTH = 10;
@@ -80,9 +80,9 @@ export function ReportSheet({ propertyId, visible, onClose }: ReportSheetProps) 
 
   if (status !== 'authenticated') {
     return (
-      <Sheet visible={visible} onClose={reset} title="Report this listing" heightRatio={0.3}>
+      <Sheet visible={visible} onClose={reset} title="Report this property" heightRatio={0.3}>
         <Text variant="body" tone="secondary">
-          Sign in to report a listing. Reports are reviewed by the DealDirect team.
+          Sign in to report a property. Reports are reviewed by the DealDirect team.
         </Text>
       </Sheet>
     );
@@ -100,7 +100,7 @@ export function ReportSheet({ propertyId, visible, onClose }: ReportSheetProps) 
   }
 
   return (
-    <Sheet visible={visible} onClose={reset} title="Report this listing" heightRatio={0.72}>
+    <Sheet visible={visible} onClose={reset} title="Report this property" heightRatio={0.72}>
       <Text variant="footnote" tone="muted">
         Tell us what is wrong. Reports go to the DealDirect team, not to the owner.
       </Text>

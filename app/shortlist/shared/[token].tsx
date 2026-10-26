@@ -74,7 +74,7 @@ export default function SharedShortlistScreen() {
           }
           title="This link is no longer live"
           description="Whoever shared it has replaced or revoked it, or it has expired. Ask them for a new one."
-          actionLabel="Search listings"
+          actionLabel="Search properties"
           onAction={() => router.push('/(tabs)/search')}
         />
       ) : error ? (
@@ -83,7 +83,7 @@ export default function SharedShortlistScreen() {
         <EmptyState
           title="Nothing on this shortlist"
           description="The list behind this link is empty right now."
-          actionLabel="Search listings"
+          actionLabel="Search properties"
           onAction={() => router.push('/(tabs)/search')}
         />
       ) : (
@@ -105,14 +105,14 @@ export default function SharedShortlistScreen() {
               </Text>
               <Text variant="footnote" tone="secondary" className="mt-xs">
                 {shortlist.items.length}{' '}
-                {shortlist.items.length === 1 ? 'listing' : 'listings'}
+                {shortlist.items.length === 1 ? 'property' : 'properties'}
                 {expires ? ` · link works until ${expires}` : ''}
               </Text>
             </View>
           }
           ListFooterComponent={
             <Text variant="caption" tone="muted" className="mt-lg text-center">
-              You are looking at someone else&apos;s saved listings. Nothing you do here changes
+              You are looking at someone else&apos;s saved properties. Nothing you do here changes
               their list.
             </Text>
           }

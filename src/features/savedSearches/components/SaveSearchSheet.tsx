@@ -137,7 +137,7 @@ export function SaveSearchSheet({ visible, onClose, seedTerm, onSaved }: SaveSea
     return (
       <Sheet visible={visible} onClose={reset} title="Save this search" heightRatio={0.3}>
         <Text variant="body" tone="secondary">
-          Sign in to save a search and get alerted when new listings match it.
+          Sign in to save a search and get alerted when new properties match it.
         </Text>
       </Sheet>
     );
@@ -146,7 +146,7 @@ export function SaveSearchSheet({ visible, onClose, seedTerm, onSaved }: SaveSea
   return (
     <Sheet visible={visible} onClose={reset} title="Save this search" heightRatio={0.8}>
       <Text variant="footnote" tone="muted">
-        We will alert you when a new listing matches. Alerts match on city and price range.
+        We will alert you when a new property matches. Alerts match on city and price range.
       </Text>
 
       <Input
@@ -166,7 +166,7 @@ export function SaveSearchSheet({ visible, onClose, seedTerm, onSaved }: SaveSea
         autoCapitalize="words"
         containerClassName="mt-md"
         maxLength={100}
-        hint="Matched exactly, so use the spelling the listings use."
+        hint="Matched exactly, so spell the city the way DealDirect does."
       />
 
       <Text variant="footnote" tone="secondary" className="mt-lg">
@@ -229,7 +229,7 @@ export function SaveSearchSheet({ visible, onClose, seedTerm, onSaved }: SaveSea
       {!hasFilter ? (
         <Text variant="caption" tone="muted" className="mt-md">
           Add a city or a price range. A search with neither cannot be matched against new
-          listings.
+          properties.
         </Text>
       ) : null}
 

@@ -83,7 +83,7 @@ function LeadDetailScreenContent() {
   }
 
   const property = typeof lead.property === 'object' ? lead.property : undefined;
-  const title = property?.title ?? lead.propertySnapshot?.title ?? 'Listing';
+  const title = property?.title ?? lead.propertySnapshot?.title ?? 'Property';
   const price = property?.price ?? lead.propertySnapshot?.price;
   const place = [lead.propertySnapshot?.locality, lead.propertySnapshot?.city]
     .filter(Boolean)
@@ -192,7 +192,7 @@ function LeadDetailScreenContent() {
         <Card
           className="mt-base"
           onPress={property?._id ? () => router.push(`/property/${property._id}`) : undefined}
-          accessibilityLabel={`Open listing ${title}`}
+          accessibilityLabel={`Open property ${title}`}
         >
           <Text variant="footnote" tone="secondary">
             Interested in

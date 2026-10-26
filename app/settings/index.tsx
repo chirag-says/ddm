@@ -113,7 +113,7 @@ export default function SettingsScreen() {
               container reads as an equivalent, reversible setting. */}
           <ListGroup
             className="mt-xl"
-            footer="Deleting your account removes your listings, saved searches and reward balance. This cannot be undone."
+            footer="Deleting your account removes your posted properties, saved searches and reward balance. This cannot be undone."
           >
             <ListRow
               icon="trash-outline"

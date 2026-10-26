@@ -210,7 +210,7 @@ export function QuickFilterBar({ filters, onChange }: QuickFilterBarProps) {
             options={INTENT_SEGMENTS}
             value={filters.listingType ?? 'all'}
             onChange={setIntent}
-            accessibilityLabel="Listing type"
+            accessibilityLabel="Sale or rent"
           />
 
           {FACETS.map((spec) => {

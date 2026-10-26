@@ -351,8 +351,8 @@ function ShortlistList({ onOpenSearch }: { onOpenSearch: () => void }) {
               </View>
             }
             title="Nothing shortlisted yet"
-            description="Tap Save on a listing to keep it here while you decide. The owner is not told, and there is no limit."
-            actionLabel="Search listings"
+            description="Tap Save on a property to keep it here while you decide. The owner is not told, and there is no limit."
+            actionLabel="Search properties"
             onAction={onOpenSearch}
           />
         )}
@@ -469,12 +469,12 @@ function ShortlistToolbar({
   return (
     <View className="flex-row items-center">
       <Text variant="footnote" tone="secondary" className="flex-1">
-        {count} {count === 1 ? 'listing' : 'listings'} saved
+        {count} {count === 1 ? 'property' : 'properties'} saved
       </Text>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={comparing ? 'Leave compare mode' : 'Compare shortlisted listings'}
+        accessibilityLabel={comparing ? 'Leave compare mode' : 'Compare shortlisted properties'}
         accessibilityState={{ selected: comparing }}
         hitSlop={gesture.hitSlop}
         onPress={onCompare}
@@ -685,7 +685,7 @@ function DealsList({ onOpenSearch }: { onOpenSearch: () => void }) {
             compact={compact}
             icon="chatbubbles-outline"
             title="Your deals"
-            description="Every enquiry you send, and every one you receive on your listing, becomes a deal you can follow here."
+            description="Every enquiry you send, and every one you receive on your property, becomes a deal you can follow here."
           />
         )}
       />
@@ -1007,7 +1007,7 @@ function SearchesList() {
       <SignInPrompt
         icon="bookmark-outline"
         title="Your saved searches"
-        description="Save a search and we will alert you when a new listing matches it."
+        description="Save a search and we will alert you when a new property matches it."
       />
     );
   }
@@ -1024,8 +1024,8 @@ function SearchesList() {
     return (
       <EmptyState
         title="No saved searches"
-        description="Run a search, then save it to be alerted when new listings match."
-        actionLabel="Search listings"
+        description="Run a search, then save it to be alerted when new properties match."
+        actionLabel="Search properties"
         onAction={() => router.push('/(tabs)/search')}
       />
     );

@@ -133,7 +133,7 @@ export function ContactForm() {
       <View>
         <Input
           label="Subject"
-          placeholder="Regarding a listing, a partnership…"
+          placeholder="Regarding a property, a partnership…"
           value={subject}
           onChangeText={(value) => {
             setSubject(value);

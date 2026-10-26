@@ -10,7 +10,7 @@ export const faqPage: ContentPage = {
   id: 'faq',
   eyebrow: 'Help',
   title: 'Questions, answered',
-  intro: 'What DealDirect is, how listings work, and what your points are worth.',
+  intro: 'What DealDirect is, how posting a property works, and what your points are worth.',
   webPath: '/faq',
   sections: [
     {
@@ -32,7 +32,7 @@ export const faqPage: ContentPage = {
               id: 'really-broker-free',
               question: 'Is Deal Direct really free from brokers?',
               answer:
-                'Yes. Listings pass through filters and a one-post-per-user rule, which keeps bulk agency uploads off the site.',
+                'Yes. Properties pass through filters and a one-post-per-user rule, which keeps bulk agency uploads off the site.',
             },
           ],
         },
@@ -40,7 +40,7 @@ export const faqPage: ContentPage = {
     },
     {
       id: 'listings',
-      title: 'Posting & Listings',
+      title: 'Posting a property',
       blurb: 'Rules for putting a property on the site.',
       icon: 'list-outline',
       blocks: [
@@ -61,7 +61,7 @@ export const faqPage: ContentPage = {
             },
             {
               id: 'stand-out',
-              question: 'How do I make my listing stand out?',
+              question: 'How do I make my property stand out?',
               answer:
                 'You get one post, so make it count. Add sharp, well-lit photos, write a specific description, and state the price and amenities plainly.',
             },
@@ -82,7 +82,7 @@ export const faqPage: ContentPage = {
               id: 'how-to-earn',
               question: 'How do I earn rewards on Deal Direct?',
               answer:
-                'Four ways: post a property, send a genuine enquiry on a listing, close a deal through the platform, or refer someone who signs up.',
+                'Four ways: post a property, send a genuine enquiry on a property, close a deal through the platform, or refer someone who signs up.',
             },
             {
               id: 'how-to-refer',
@@ -103,7 +103,7 @@ export const faqPage: ContentPage = {
     {
       id: 'safety',
       title: 'Safety & Trust',
-      blurb: 'What happens to your data, and how to report a listing.',
+      blurb: 'What happens to your data, and how to report a property.',
       icon: 'lock-closed-outline',
       blocks: [
         {
@@ -117,9 +117,9 @@ export const faqPage: ContentPage = {
             },
             {
               id: 'report-listing',
-              question: 'How do I report a suspicious listing?',
+              question: 'How do I report a suspicious property?',
               answer:
-                'Use the Report button on the listing page. Every report is reviewed within 24 hours.',
+                'Use the Report button on the property page. Every report is reviewed within 24 hours.',
             },
           ],
         },

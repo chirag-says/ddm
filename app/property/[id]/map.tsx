@@ -75,7 +75,7 @@ export default function PropertyMapScreen() {
       <Screen edges={['top']}>
         <ScreenHeader title="Location" backTo={`/property/${id}`} />
         <EmptyState
-          title="Listing no longer available"
+          title="Property no longer available"
           description="It may have been sold, rented, or taken down by its owner."
         />
       </Screen>
@@ -115,7 +115,7 @@ export default function PropertyMapScreen() {
           <Text variant="footnote" tone="secondary" className="text-center">
             {coords
               ? 'A map is not available in this version of the app.'
-              : 'The owner did not pin an exact location for this listing.'}
+              : 'The owner did not pin an exact location for this property.'}
           </Text>
           <Button
             label="Open in maps"

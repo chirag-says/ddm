@@ -73,7 +73,7 @@ export function ShareShortlistSheet({ visible, onClose, count }: ShareShortlistS
 
   const sendLink = async (url: string) => {
     await Share.share({
-      message: `My DealDirect shortlist — ${shared} ${shared === 1 ? 'listing' : 'listings'}: ${url}`,
+      message: `My DealDirect shortlist — ${shared} ${shared === 1 ? 'property' : 'properties'}: ${url}`,
       url,
     });
   };
@@ -92,7 +92,7 @@ export function ShareShortlistSheet({ visible, onClose, count }: ShareShortlistS
     <Sheet visible={visible} onClose={close} title="Share your shortlist" heightRatio={0.55}>
       {isEmpty || count === 0 ? (
         <Text variant="body" tone="secondary">
-          There is nothing on your shortlist to share yet. Save a few listings first.
+          There is nothing on your shortlist to share yet. Save a few properties first.
         </Text>
       ) : link ? (
         <>
@@ -107,7 +107,7 @@ export function ShareShortlistSheet({ visible, onClose, count }: ShareShortlistS
           </View>
 
           <Text variant="caption" tone="muted" className="mt-md">
-            Anyone with this link can see the {shared} {shared === 1 ? 'listing' : 'listings'} on
+            Anyone with this link can see the {shared} {shared === 1 ? 'property' : 'properties'} on
             your shortlist. Your notes are not included, and they cannot change anything.
           </Text>
 
@@ -137,7 +137,7 @@ export function ShareShortlistSheet({ visible, onClose, count }: ShareShortlistS
       ) : (
         <>
           <Text variant="body" tone="secondary">
-            A link anyone can open to see the listings you have saved. Your notes stay private, and
+            A link anyone can open to see the properties you have saved. Your notes stay private, and
             you can revoke it whenever you like.
           </Text>
           <Text variant="caption" tone="muted" className="mt-sm">

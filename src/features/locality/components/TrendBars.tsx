@@ -51,7 +51,7 @@ export function TrendBars({ trend }: TrendBarsProps) {
             <View key={bar.period} className="flex-1 items-center justify-end">
               <View
                 accessible
-                accessibilityLabel={`${bar.label}: ${formatPrice(bar.medianAsking)} from ${bar.count} listings`}
+                accessibilityLabel={`${bar.label}: ${formatPrice(bar.medianAsking)} from ${bar.count} ${bar.count === 1 ? 'property' : 'properties'}`}
                 style={{
                   width: '100%',
                   height: Math.max(MIN_BAR, bar.height * BAR_AREA),

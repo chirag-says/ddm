@@ -87,7 +87,7 @@ export function OwnerOnly({
         <SignInPrompt
           icon="key-outline"
           title="Owner tools"
-          description="Sign in with an owner account to post a listing and manage the enquiries it receives."
+          description="Sign in with an owner account to post a property and manage the enquiries it receives."
         />
       </Screen>
     );
@@ -111,9 +111,9 @@ export function OwnerOnly({
               <Ionicons name="key-outline" size={30} color={theme.colors.accent} />
             </View>
           }
-          title="Post your first listing"
-          description="Leads and analytics appear here once you have a property listed. Posting one is what turns this into an owner account — you will be asked to verify your mobile number along the way."
-          actionLabel="List a property"
+          title="Post your first property"
+          description="Leads and analytics appear here once you have posted a property. Posting one is what turns this into an owner account — you will be asked to verify your mobile number along the way."
+          actionLabel="Post a property"
           actionVariant="primary"
           // Points at the listing form, not at Profile.
           //

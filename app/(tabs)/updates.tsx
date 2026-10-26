@@ -142,7 +142,7 @@ export default function UpdatesScreen() {
         <SignInPrompt
           icon="notifications-outline"
           title="Your notifications"
-          description="Alerts about your listings, leads and saved searches appear here."
+          description="Alerts about your properties, leads and saved searches appear here."
         />
       ) : isLoading ? (
         <NotificationsSkeleton />

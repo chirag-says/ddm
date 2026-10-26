@@ -159,7 +159,7 @@ export default function PropertyGalleryScreen() {
     return (
       <Screen>
         <EmptyState
-          title="Listing no longer available"
+          title="Property no longer available"
           description="It may have been sold, rented, or taken down by its owner."
           actionLabel="Go back"
           onAction={handleClose}
@@ -174,8 +174,8 @@ export default function PropertyGalleryScreen() {
       <Screen>
         <EmptyState
           title="No photos"
-          description="This listing was posted without any images."
-          actionLabel="Back to listing"
+          description="This property was posted without any images."
+          actionLabel="Back to property"
           onAction={handleClose}
         />
       </Screen>

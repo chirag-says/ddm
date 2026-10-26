@@ -718,7 +718,7 @@ function SearchMapView({
             {loading
               ? 'Loading the map…'
               : total > 0
-                ? 'None of these listings have a pinned location yet.'
+                ? 'None of these properties have a pinned location yet.'
                 : 'No results to map.'}
           </Text>
         </View>

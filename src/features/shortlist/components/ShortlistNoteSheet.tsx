@@ -83,7 +83,7 @@ export function ShortlistNoteSheet({ entry, onClose }: ShortlistNoteSheetProps) 
 
       {gone ? (
         <Text variant="footnote" tone="danger" className="mt-md">
-          This listing is no longer on your shortlist, so there is nowhere to keep the note.
+          This property is no longer on your shortlist, so there is nowhere to keep the note.
         </Text>
       ) : error ? (
         <Text variant="footnote" tone="danger" className="mt-md">

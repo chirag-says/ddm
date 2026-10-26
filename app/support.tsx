@@ -44,7 +44,7 @@ export default function SupportScreen() {
       >
         <ListGroup
           title="Talk to us"
-          footer="Something wrong with a listing, or stuck on your account? Reach us directly."
+          footer="Something wrong with a property, or stuck on your account? Reach us directly."
         >
           <ListRow
             icon="mail-outline"

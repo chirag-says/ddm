@@ -74,7 +74,7 @@ export function PriceGuidanceLine({ city, locality, listingType, bhk }: PriceGui
   return (
     <Text variant="caption" tone="muted" className="mt-sm">
       {what} in {guidance.locality} ask {formatBand(guidance.low, guidance.high)} on DealDirect,
-      across {guidance.count} {guidance.count === 1 ? 'listing' : 'listings'}.
+      across {guidance.count} {guidance.count === 1 ? 'property' : 'properties'}.
     </Text>
   );
 }

@@ -32,7 +32,7 @@ export const whyUsPage: ContentPage = {
             {
               icon: 'shield-checkmark-outline',
               title: 'Trust & Transparency',
-              text: 'From detailed listings and rich media to notifications, we keep every step clear so you can make confident decisions.',
+              text: 'From detailed property pages and rich media to notifications, we keep every step clear so you can make confident decisions.',
             },
           ],
         },
@@ -46,12 +46,12 @@ export const whyUsPage: ContentPage = {
         { type: 'heading', text: 'For Property Owners' },
         {
           type: 'paragraph',
-          text: 'List your property in minutes, manage enquiries from a single dashboard, and get notified when serious leads show interest. You stay in control from listing to closing.',
+          text: 'Post your property in minutes, manage enquiries from a single dashboard, and get notified when serious leads show interest. You stay in control from posting to closing.',
         },
         { type: 'heading', text: 'For Seekers' },
         {
           type: 'paragraph',
-          text: 'Explore curated listings, compare options, save favourites, and receive updates when new properties match your preferences.',
+          text: 'Explore curated properties, compare options, save favourites, and receive updates when new properties match your preferences.',
         },
       ],
     },
@@ -62,7 +62,7 @@ export const whyUsPage: ContentPage = {
       blocks: [
         {
           type: 'paragraph',
-          text: "DealDirect doesn't charge owners, buyers or tenants. Listing a property and sending an enquiry cost nothing.",
+          text: "DealDirect doesn't charge owners, buyers or tenants. Posting a property and sending an enquiry cost nothing.",
         },
       ],
     },

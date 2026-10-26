@@ -302,7 +302,7 @@ export default function PropertyDetailScreen() {
     return (
       <Screen>
         <EmptyState
-          title="Listing no longer available"
+          title="Property no longer available"
           description="It may have been sold, rented, or taken down by its owner."
           actionLabel="Back to search"
           onAction={() => router.replace('/(tabs)/search')}
@@ -315,7 +315,7 @@ export default function PropertyDetailScreen() {
     return (
       <Screen>
         <ErrorState
-          title="Could not load this listing"
+          title="Could not load this property"
           onRetry={refresh}
         />
       </Screen>
@@ -772,14 +772,14 @@ export default function PropertyDetailScreen() {
           {!isOwnListing ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Report this listing"
+              accessibilityLabel="Report this property"
               onPress={() => setReporting(true)}
               hitSlop={12}
               className="mt-3xl flex-row items-center justify-center active:opacity-60"
             >
               <Ionicons name="flag-outline" size={15} color={theme.colors.textMuted} />
               <Text variant="footnote" tone="muted" className="ml-xs">
-                Report this listing
+                Report this property
               </Text>
             </Pressable>
           ) : null}

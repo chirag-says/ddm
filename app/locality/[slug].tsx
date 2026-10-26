@@ -121,11 +121,11 @@ export default function LocalityScreen() {
               <Ionicons name="stats-chart-outline" size={30} color={theme.colors.textMuted} />
             </View>
           }
-          title="Not enough listings here yet"
+          title="Not enough properties here yet"
           description={
             listingType === 'sale'
-              ? 'We only publish a median once there are enough homes for sale in a locality for it to mean something. Try rentals, or come back as more listings arrive.'
-              : 'We only publish a median once there are enough rentals in a locality for it to mean something. Try homes for sale, or come back as more listings arrive.'
+              ? 'We only publish a median once there are enough homes for sale in a locality for it to mean something. Try rentals, or come back as more properties arrive.'
+              : 'We only publish a median once there are enough rentals in a locality for it to mean something. Try homes for sale, or come back as more properties arrive.'
           }
         />
       ) : error ? (
@@ -216,7 +216,7 @@ export default function LocalityScreen() {
 
                       <View className="mt-xs flex-row items-baseline">
                         <Text variant="caption" tone="muted" className="flex-1">
-                          {row.count} {row.count === 1 ? 'listing' : 'listings'}
+                          {row.count} {row.count === 1 ? 'property' : 'properties'}
                           {rowRange ? ` · ${rowRange.replace('Most ask between ', '')}` : ''}
                         </Text>
                         {rowQoq ? (
@@ -245,9 +245,9 @@ export default function LocalityScreen() {
             style={{ padding: spacing.base, borderRadius: radius.lg }}
           >
             <Text variant="caption" tone="muted">
-              These are asking prices from listings on DealDirect in {locality.locality},{' '}
+              These are asking prices from properties on DealDirect in {locality.locality},{' '}
               {locality.city} — what owners are asking, not what homes sold for. We publish a
-              locality only once it has at least {locality.sampleFloor} listings in the quarter, so
+              locality only once it has at least {locality.sampleFloor} properties in the quarter, so
               some areas will not appear here at all.
             </Text>
           </View>

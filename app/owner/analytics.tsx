@@ -93,7 +93,7 @@ function AnalyticsScreenContent() {
     return (
       <EmptyState
         title="No analytics yet"
-        description="Once your listing starts receiving leads, you will see the numbers here."
+        description="Once your property starts receiving leads, you will see the numbers here."
       />
     );
   }

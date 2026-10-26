@@ -85,7 +85,7 @@ function EditPropertyScreenContent() {
         >
           <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        <Text variant="title2">Edit listing</Text>
+        <Text variant="title2">Edit property</Text>
       </View>
 
       {isLoading && !property ? (
@@ -93,9 +93,9 @@ function EditPropertyScreenContent() {
           <Skeleton height={400} radius={16} />
         </View>
       ) : error ? (
-        <ErrorState title="Could not load your listing" onRetry={refresh} />
+        <ErrorState title="Could not load your property" onRetry={refresh} />
       ) : !property || !values ? (
-        <ErrorState title="Listing not found" onRetry={refresh} />
+        <ErrorState title="Property not found" onRetry={refresh} />
       ) : (
         <ListingForm
           values={values}
@@ -123,7 +123,7 @@ function EditPropertyScreenContent() {
  */
 export default function EditPropertyScreen() {
   return (
-    <OwnerOnly title="Edit listing">
+    <OwnerOnly title="Edit property">
       <EditPropertyScreenContent />
     </OwnerOnly>
   );

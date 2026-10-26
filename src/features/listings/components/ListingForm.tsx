@@ -100,7 +100,7 @@ function stepBlocker(step: number, values: ListingFormValues): string | null {
       return null;
     case 1:
       if (values.title.trim().length < TITLE_MIN)
-        return `Give the listing a title of at least ${TITLE_MIN} characters.`;
+        return `Give the property a title of at least ${TITLE_MIN} characters.`;
       return null;
     case 2:
       if (!values.locality.trim() && !values.city.trim())
@@ -348,7 +348,7 @@ export function ListingForm({
           {step === 0 && (
             <Card>
               <Text variant="bodyEmphasis" className="mb-base">
-                What are you listing?
+                What are you posting?
               </Text>
 
               {/*
@@ -460,7 +460,7 @@ export function ListingForm({
                 hint={
                   values.description.length > 0
                     ? `${values.description.length.toLocaleString('en-IN')}/${DESCRIPTION_MAX.toLocaleString('en-IN')}`
-                    : 'Optional, but a listing with none is easy to scroll past.'
+                    : 'Optional, but a property with none is easy to scroll past.'
                 }
                 containerClassName="mt-base"
               />
@@ -980,7 +980,7 @@ export function ListingForm({
               </View>
               {totalPhotos === 0 ? (
                 <Text variant="footnote" tone="secondary">
-                  Listings with photos get far more interest. Add at least a few.
+                  Properties with photos get far more interest. Add at least a few.
                 </Text>
               ) : null}
             </Card>
@@ -1003,7 +1003,7 @@ export function ListingForm({
             <Card>
               <StepIntro
                 title="Check it over"
-                hint="Tap any line to change it. You can edit the listing after it is live, too."
+                hint="Tap any line to change it. You can edit the property after it is live, too."
               />
               {/* Every row is a way back to its step. Without that, a mistake
                   spotted here cost six Back presses and the owner's patience. */}
@@ -1013,7 +1013,7 @@ export function ListingForm({
                 onEdit={() => goTo(0)}
               />
               <ReviewRow
-                label="Listing"
+                label="Sale or rent"
                 value={values.listingType === 'Rent' ? 'For rent' : 'For sale'}
                 onEdit={() => goTo(0)}
               />
@@ -1069,7 +1069,7 @@ export function ListingForm({
 
               {totalPhotos === 0 ? (
                 <Text variant="footnote" tone="danger" className="mt-sm">
-                  No photos yet. Listings without one get a fraction of the enquiries.
+                  No photos yet. Properties without one get a fraction of the enquiries.
                 </Text>
               ) : null}
 

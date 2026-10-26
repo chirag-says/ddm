@@ -485,7 +485,7 @@ function PopularListings({
   return (
     <Section
       title="Popular right now"
-      subtitle={isComplete ? 'Most viewed homes right now' : 'Most viewed among our newest listings'}
+      subtitle={isComplete ? 'Most viewed homes right now' : 'Most viewed among our newest properties'}
       actionLabel="View all"
       onAction={() => onViewAll({ sort: 'newest', browse: '1' })}
     >
@@ -493,7 +493,7 @@ function PopularListings({
         items={items}
         loading={isLoading}
         onSelect={onSelectProperty}
-        accessibilityLabel="Popular listings"
+        accessibilityLabel="Popular properties"
         showIndicator
       />
     </Section>

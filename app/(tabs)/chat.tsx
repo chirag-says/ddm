@@ -75,7 +75,7 @@ export default function ChatListScreen() {
       {requiresAuth ? (
         <EmptyState
           title="Sign in to message owners"
-          description="Conversations you start from a listing appear here."
+          description="Conversations you start from a property appear here."
           actionLabel="Sign in"
           onAction={() => router.push('/(auth)/login')}
         />
@@ -86,8 +86,8 @@ export default function ChatListScreen() {
       ) : items.length === 0 ? (
         <EmptyState
           title="No conversations yet"
-          description="Message an owner from any listing to start one."
-          actionLabel="Browse listings"
+          description="Message an owner from any property to start one."
+          actionLabel="Browse properties"
           onAction={() => router.push('/(tabs)/search')}
         />
       ) : (

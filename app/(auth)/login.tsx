@@ -97,7 +97,7 @@ export default function LoginScreen() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Log in to pick up your enquiries, shortlist and listings."
+      subtitle="Log in to pick up your enquiries, shortlist and properties."
       footer={
         <View className="flex-row items-center justify-center">
           <Text variant="callout" tone="secondary">

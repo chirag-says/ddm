@@ -44,7 +44,7 @@ export default function RewardsScreen() {
         <SignInPrompt
           icon="gift-outline"
           title="Your rewards"
-          description="Earn points for enquiring, listing a property and referring friends."
+          description="Earn points for enquiring, posting a property and referring friends."
         />
       </Screen>
     );

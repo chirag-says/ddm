@@ -80,7 +80,7 @@ export function EnquiryMeter({ used }: { used: number }) {
             style={{ marginTop: 2 }}
           />
           <Text variant="caption" tone="muted" className="ml-xs flex-1">
-            Tap the heart on a listing below to free a slot.
+            Tap the heart on a property below to free a slot.
           </Text>
         </View>
       ) : null}

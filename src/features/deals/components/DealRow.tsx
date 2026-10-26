@@ -55,7 +55,7 @@ function nextLine(deal: DealListRow): { text: string; emphasis: boolean } | null
 function DealRowComponent({ deal, showRole, onPress, onOverflow }: DealRowProps) {
   const theme = useTheme();
   const property = deal.property;
-  const title = property?.title ?? 'Listing no longer available';
+  const title = property?.title ?? 'Property no longer available';
   const place = [property?.locality, property?.city].filter(Boolean).join(', ');
   const unread = deal.unread > 0;
   const next = nextLine(deal);

@@ -209,14 +209,14 @@ export function DetailOwnerActions({
   return (
     <ActionBarFrame onHeightChange={onHeightChange}>
       <Text variant="caption" tone="muted" className="mb-sm">
-        This is your listing, shown as buyers see it.
+        This is your property, shown as buyers see it.
       </Text>
       <View className="flex-row items-stretch" style={{ gap: spacing.sm }}>
         <View className="flex-1">
           <Button label="View enquiries" variant="secondary" fullWidth onPress={onViewEnquiries} />
         </View>
         <View className="flex-1">
-          <Button label="Edit listing" fullWidth onPress={onEdit} />
+          <Button label="Edit property" fullWidth onPress={onEdit} />
         </View>
       </View>
     </ActionBarFrame>

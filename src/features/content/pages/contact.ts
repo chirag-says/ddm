@@ -56,7 +56,7 @@ export const contactPage: ContentPage = {
             {
               icon: 'headset-outline',
               title: 'Direct support',
-              text: 'Help with listings and enquiries',
+              text: 'Help with properties and enquiries',
             },
             {
               icon: 'business-outline',

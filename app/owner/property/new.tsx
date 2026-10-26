@@ -60,7 +60,7 @@ function NewPropertyScreenContent() {
     if (!hasListingDraft(userId)) return;
     Alert.alert(
       'Resume draft?',
-      'You have an unfinished listing. Continue where you left off? Photos need to be added again.',
+      'You have an unfinished property post. Continue where you left off? Photos need to be added again.',
       [
         { text: 'Start over', style: 'destructive', onPress: () => clearListingDraft() },
         { text: 'Resume', onPress: () => setValues(loadListingDraft(userId)) },
@@ -129,7 +129,7 @@ function NewPropertyScreenContent() {
         >
           <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        <Text variant="title2">Add listing</Text>
+        <Text variant="title2">Post property</Text>
       </View>
 
       {/*
@@ -146,7 +146,7 @@ function NewPropertyScreenContent() {
             style={{ marginTop: 2, marginRight: 6 }}
           />
           <Text variant="footnote" tone="secondary" className="flex-1">
-            Before publishing you will verify your mobile number with a one-time code, so buyers
+            Before posting you will verify your mobile number with a one-time code, so buyers
             can reach you. Your details are saved as you go.
           </Text>
         </View>
@@ -160,7 +160,7 @@ function NewPropertyScreenContent() {
         newPhotos={newPhotos}
         onChangeNewPhotos={setNewPhotos}
         onSubmit={() => void handleSubmit()}
-        submitLabel="Publish listing"
+        submitLabel="Post property"
         isSubmitting={isPending}
         submitError={error instanceof ApiError ? error.message : undefined}
       />
@@ -184,7 +184,7 @@ function NewPropertyScreenContent() {
  */
 export default function NewPropertyScreen() {
   return (
-    <OwnerOnly title="Add listing" allowNewOwners>
+    <OwnerOnly title="Post property" allowNewOwners>
       <NewPropertyScreenContent />
     </OwnerOnly>
   );

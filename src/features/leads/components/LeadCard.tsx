@@ -72,7 +72,7 @@ function LeadCardComponent({ lead, onPress }: LeadCardProps) {
   const theme = useTheme();
 
   const property = typeof lead.property === 'object' ? lead.property : undefined;
-  const title = property?.title ?? lead.propertySnapshot?.title ?? 'Listing';
+  const title = property?.title ?? lead.propertySnapshot?.title ?? 'Property';
   const price = property?.price ?? lead.propertySnapshot?.price;
 
   // Locality and BHK come from the snapshot taken at enquiry time, so they

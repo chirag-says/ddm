@@ -127,7 +127,7 @@ export function CloseDealSheet({ visible, property, onClose, onSuccess }: CloseD
         <View className="mb-lg">
           <Text variant="bodyEmphasis">{closingType === 'rented' ? 'Rented' : 'Sold'}</Text>
           <Text variant="footnote" tone="muted" className="mt-xs">
-            Based on your listing type ({property.listingType ?? 'Sale'}).
+            Because you posted it for {closingType === 'rented' ? 'rent' : 'sale'}.
           </Text>
         </View>
 
@@ -136,7 +136,7 @@ export function CloseDealSheet({ visible, property, onClose, onSuccess }: CloseD
         </Text>
         {interestedUsers.length === 0 ? (
           <Text variant="footnote" tone="muted" className="mb-lg">
-            Nobody has marked interest in this listing yet. A buyer must appear in your
+            Nobody has marked interest in this property yet. A buyer must appear in your
             interested list before you can close a deal with them.
           </Text>
         ) : (

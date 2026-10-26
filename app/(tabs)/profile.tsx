@@ -78,7 +78,7 @@ export default function ProfileScreen() {
             compact
             icon="person-circle-outline"
             title="Your account"
-            description="Your profile, rewards and listings live here once you are signed in."
+            description="Your profile, rewards and properties live here once you are signed in."
           />
 
           <PublicSections />
@@ -364,7 +364,7 @@ function OwnerCard() {
     <ListGroup title="Your property" className="mt-xl">
       <ListRow
         icon="home-outline"
-        label="My listing"
+        label="My property"
         onPress={() => router.push('/owner/properties')}
       />
       <ListRow icon="people-outline" label="Leads" onPress={() => router.push('/owner/leads')} />
@@ -399,7 +399,7 @@ function UpgradeCard() {
     <Card className="mt-xl">
       <Text variant="bodyEmphasis">List your property on DealDirect</Text>
       <Text variant="footnote" tone="secondary" className="mt-xs mb-base">
-        Post a listing and manage leads directly. We will ask you to verify your mobile number
+        Post a property and manage leads directly. We will ask you to verify your mobile number
         once, as part of posting.
       </Text>
       <Button

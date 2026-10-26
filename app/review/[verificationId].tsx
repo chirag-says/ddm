@@ -60,7 +60,7 @@ export default function ReviewRoute() {
 const TEXT_MAX = 600;
 
 const RATING_FIELDS: Array<{ key: keyof ReviewRatings; label: string; hint: string }> = [
-  { key: 'accuracy', label: 'Accuracy', hint: 'Was the listing, or the enquiry, what it said?' },
+  { key: 'accuracy', label: 'Accuracy', hint: 'Was the property, or the enquiry, what it said?' },
   { key: 'responsiveness', label: 'Responsiveness', hint: 'Did they reply and turn up?' },
   { key: 'seriousness', label: 'Seriousness', hint: 'Were they there to make a deal?' },
 ];
