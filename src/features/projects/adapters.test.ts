@@ -61,7 +61,7 @@ describe('the project detail page', () => {
     assert.deepEqual(adaptProjectDetail(LIVE).facts, [
       { key: 'possession', label: 'Possession', value: 'Dec 2029' },
       { key: 'launch', label: 'Launched', value: 'May 2025' },
-      { key: 'towers', label: 'Tower', value: '1 · G+31' },
+      { key: 'towers', label: 'Building', value: '1 tower · G+31' },
       { key: 'units', label: 'Total units', value: '20' },
       { key: 'land', label: 'Land area', value: '0.30 Acres' },
     ]);
@@ -84,8 +84,16 @@ describe('the project detail page', () => {
     );
     assert.deepEqual(detail.nearby, [
       { name: 'Harmony School', distance: 'Adjacent' },
-      { name: 'Tata Memorial Hospital', distance: '5km' },
+      { name: 'Tata Memorial Hospital', distance: '5 km' },
     ]);
+  });
+
+  it('spaces distances the same way however they were typed', () => {
+    const detail = adaptProjectDetail({
+      ...LIVE,
+      nearbyPlaces: [{ name: 'Mall', distance: '1.5KM' }, { name: 'Park', distance: 'Adjacent' }],
+    });
+    assert.deepEqual(detail.nearby.map((p) => p.distance), ['1.5 km', 'Adjacent']);
   });
 });
 

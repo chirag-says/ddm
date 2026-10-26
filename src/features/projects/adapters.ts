@@ -108,6 +108,11 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+/** "5km" and "5 km" are both typed in the admin form; shown one way. */
+function formatDistance(value: unknown): string | undefined {
+  return text(value)?.replace(/(\d)\s*(km|m)\b/gi, (_, digit: string, unit: string) => `${digit} ${unit.toLowerCase()}`);
+}
+
 /**
  * The one line Indian portals lead a project with: what sizes, how big.
  * "2, 3 BHK" and "720 – 980 sq ft carpet", each left out when no unit type
@@ -197,9 +202,13 @@ export function adaptProjectDetail(project: Project): ProjectDetailView {
     { key: 'possession', label: 'Possession', value: summary.possession },
     { key: 'launch', label: 'Launched', value: formatMonthYear(overview?.launchDate) },
     {
+      // "1 tower · G+31", not "1 · G+31": a bare number beside a floor code
+      // did not say which was which.
       key: 'towers',
-      label: towers === '1' ? 'Tower' : 'Towers',
-      value: towers ? (floors ? `${towers} · ${floors}` : towers) : undefined,
+      label: 'Building',
+      value: towers
+        ? `${towers} ${towers === '1' ? 'tower' : 'towers'}${floors ? ` · ${floors}` : ''}`
+        : undefined,
     },
     { key: 'units', label: 'Total units', value: text(overview?.totalUnits) },
     { key: 'land', label: 'Land area', value: text(overview?.totalLandArea) },
@@ -222,7 +231,7 @@ export function adaptProjectDetail(project: Project): ProjectDetailView {
     }
     const { name, distance } = (place ?? {}) as { name?: unknown; distance?: unknown };
     const label = text(name);
-    return label ? [{ name: label, distance: text(distance) }] : [];
+    return label ? [{ name: label, distance: formatDistance(distance) }] : [];
   });
 
   return {
@@ -236,7 +245,7 @@ export function adaptProjectDetail(project: Project): ProjectDetailView {
     amenities,
     address: street ? (landmark ? `${street} · ${landmark}` : street) : landmark,
     connectivity: CONNECTIVITY.flatMap(({ kind, field, label }) => {
-      const distance = text(location?.connectivity?.[field]);
+      const distance = formatDistance(location?.connectivity?.[field]);
       return distance ? [{ kind, label, distance }] : [];
     }),
     nearby,

@@ -2,7 +2,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, Share, useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WEB_URL } from '@/config/env';
@@ -139,12 +145,20 @@ export default function ProjectDetailScreen() {
     void Share.share({ message, ...(link ? { url: link } : {}) });
   }, [detail]);
 
+  // The scroll offset at which the units section sits just under the nav bar.
+  const unitsOffset = Math.max(0, unitsY - insets.top - HEADER_BAR_HEIGHT - spacing.base);
+
   const scrollToUnits = useCallback(() => {
-    scrollRef.current?.scrollTo({
-      y: Math.max(0, unitsY - insets.top - HEADER_BAR_HEIGHT - spacing.base),
-      animated: true,
-    });
-  }, [scrollRef, unitsY, insets.top]);
+    scrollRef.current?.scrollTo({ y: unitsOffset, animated: true });
+  }, [scrollRef, unitsOffset]);
+
+  // The bar slides away once the units have reached the top: past that point
+  // it points at something the buyer has already scrolled by. Scrolling back
+  // above the units brings it back.
+  const actionBarStyle = useAnimatedStyle(() => {
+    const hidden = unitsY > 0 && scrollY.value >= unitsOffset - 1;
+    return { transform: [{ translateY: withTiming(hidden ? actionBarHeight : 0, { duration: 180 }) }] };
+  }, [unitsY, unitsOffset, actionBarHeight]);
 
   const height = galleryHeight(width);
 
@@ -397,13 +411,13 @@ export default function ProjectDetailScreen() {
       {/* Only once there are units to go to: a button that scrolls to "No
           unit types published yet" would be a promise the page cannot keep. */}
       {unitTypes.length > 0 ? (
-        <View
+        <Animated.View
           className="absolute inset-x-0 bottom-0 border-t border-border bg-surface px-base pt-sm"
-          style={{ paddingBottom: insets.bottom + spacing.sm }}
+          style={[{ paddingBottom: insets.bottom + spacing.sm }, actionBarStyle]}
           onLayout={(event) => setActionBarHeight(event.nativeEvent.layout.height)}
         >
           <Button label="See units & prices" fullWidth onPress={scrollToUnits} />
-        </View>
+        </Animated.View>
       ) : null}
     </Screen>
   );
