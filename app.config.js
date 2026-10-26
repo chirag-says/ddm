@@ -48,7 +48,7 @@ const config = {
   name: 'DealDirect',
   slug: 'dealdirect-mobile',
   owner: 'chiragmtest',
-  version: '0.2.0',
+  version: '0.3.0',
   // Portrait is the intent. iOS applies it as written. On Android it is applied
   // at runtime on phones only (plugins/withPortraitOnPhones.js): Android 16
   // ignores orientation locks on large screens, and Play flags the manifest one.
