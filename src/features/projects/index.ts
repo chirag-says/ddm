@@ -7,7 +7,14 @@
  * module. Group buy and paid booking were removed on 2026-10-19.
  */
 
-export { adaptProject } from './adapters';
+export {
+  adaptProject,
+  adaptProjectDetail,
+  unitSummary,
+  type ConnectivityKind,
+  type ProjectDetailView,
+  type ProjectFactKey,
+} from './adapters';
 export { fetchProjects, type ProjectPage } from './api';
 export { useRecentProjects, useProjectFeed, type RecentProjectsResult, type ProjectFeed } from './hooks';
 export { ProjectCard, type ProjectCardProps } from './components/ProjectCard';

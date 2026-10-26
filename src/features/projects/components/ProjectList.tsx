@@ -18,8 +18,11 @@ export interface ProjectListProps {
 
 const keyExtractor = (item: ProjectSummary) => item.id;
 
+// A separator, not `gap`: FlashList v2 positions cells absolutely, so `gap`
+// did nothing and the cards touched. Same fix as `PropertyList`.
+const CardSeparator = () => <View style={{ height: spacing.base }} />;
+
 const CONTENT_CONTAINER_STYLE = {
-  gap: spacing.xl,
   paddingHorizontal: spacing.base,
   paddingBottom: spacing['2xl'],
   flexGrow: 1,
@@ -68,6 +71,7 @@ export function ProjectList({ feed, header }: ProjectListProps) {
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       ListHeaderComponent={header}
+      ItemSeparatorComponent={CardSeparator}
       contentContainerStyle={CONTENT_CONTAINER_STYLE}
       refreshControl={
         <RefreshControl

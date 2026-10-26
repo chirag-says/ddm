@@ -44,12 +44,36 @@ export interface Project extends Timestamps {
     state?: string;
     locality?: string;
     address?: string;
+    /** What the admin form writes; `address` is the older field. */
+    addressLine?: string;
+    landmark?: string;
+    pincode?: string;
     latitude?: number;
     longitude?: number;
+    /** Free text as entered, e.g. "2 km", "500 m". */
+    connectivity?: {
+      distanceToMetro?: string;
+      distanceToAirport?: string;
+      distanceToRailway?: string;
+      distanceToBusStop?: string;
+      [key: string]: unknown;
+    };
     [key: string]: unknown;
   };
+  /** Objects on live data; typed loosely because only the admin panel writes them. */
   nearbyPlaces?: unknown[];
-  overview?: Record<string, unknown>;
+  overview?: {
+    launchDate?: IsoDate;
+    possessionDate?: IsoDate;
+    /** Free text, e.g. "0.30 Acres". */
+    totalLandArea?: string;
+    totalTowers?: number;
+    /** Free text, e.g. "G+31". */
+    floorsPerTower?: string | number;
+    totalUnits?: number;
+    [key: string]: unknown;
+  };
+  /** `{ category, name }` objects on live data; older records may hold strings. */
   amenities?: unknown[];
   media?: {
     exteriorImages?: string[];

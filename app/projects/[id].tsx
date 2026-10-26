@@ -1,24 +1,40 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, useWindowDimensions, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, RefreshControl, Share, useWindowDimensions, View } from 'react-native';
+import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useProjectDetail, useUnitTypesForProject } from '@/features/projects';
-import { gesture, screenPadding, scrollBottomPadding, spacing, useTheme } from '@/theme';
+import { WEB_URL } from '@/config/env';
+import {
+  adaptProjectDetail,
+  unitSummary,
+  type ConnectivityKind,
+  type ProjectDetailView,
+  type ProjectFactKey,
+  useProjectDetail,
+  useUnitTypesForProject,
+} from '@/features/projects';
+import {
+  DetailHeader,
+  DetailIconList,
+  ExpandableText,
+  HEADER_BAR_HEIGHT,
+} from '@/features/properties';
+import { gesture, screenPadding, spacing, useTheme } from '@/theme';
 import type { UnitType } from '@/types/backend/project';
 import {
   Avatar,
   Badge,
+  Button,
   Card,
   ErrorState,
+  formatPrice,
   Image,
   PressableScale,
   PriceLabel,
-  Refreshable,
   Screen,
   Skeleton,
-  Tag,
   Text,
 } from '@/ui';
 
@@ -34,6 +50,34 @@ function galleryHeight(width: number): number {
   return Math.round(Math.min(Math.max(width * 0.72, 240), 360));
 }
 
+/** Amenities shown before "Show all": three rows of the two-column list. */
+const AMENITY_PREVIEW = 6;
+
+const FACT_ICON: Record<ProjectFactKey, keyof typeof Ionicons.glyphMap> = {
+  possession: 'key-outline',
+  launch: 'flag-outline',
+  towers: 'business-outline',
+  units: 'home-outline',
+  land: 'resize-outline',
+};
+
+const CONNECTIVITY_ICON: Record<ConnectivityKind, keyof typeof Ionicons.glyphMap> = {
+  metro: 'subway-outline',
+  airport: 'airplane-outline',
+  railway: 'train-outline',
+  bus: 'bus-outline',
+};
+
+/**
+ * Project detail, laid out like the property detail page (2026-10-26).
+ *
+ * It used to stop at name, price, description and unit types, while the API
+ * returned possession dates, tower counts, distances and nearby places that
+ * nothing read, and its amenities never rendered (see `adaptProjectDetail`).
+ * The nav bar is the property page's `DetailHeader`, so the page no longer
+ * scrolls bare under the status bar. Enquiry happens per unit, so the one
+ * action here takes the buyer to the units.
+ */
 export default function ProjectDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -47,6 +91,8 @@ export default function ProjectDetailScreen() {
     error: unitTypesError,
     retry: retryUnitTypes,
   } = useUnitTypesForProject(id);
+
+  const detail = useMemo(() => (project ? adaptProjectDetail(project) : null), [project]);
 
   /**
    * Pull-to-refresh used to pass `refreshing={false}` unconditionally, so the
@@ -64,12 +110,48 @@ export default function ProjectDetailScreen() {
     }
   }, [refresh]);
 
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+  const [unitsY, setUnitsY] = useState(0);
+  const [actionBarHeight, setActionBarHeight] = useState(88);
+
+  const goBack = useCallback(
+    () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
+    [router]
+  );
+
+  // Same rule as the property page: the link only when a web origin is set.
+  const handleShare = useCallback(() => {
+    if (!detail) return;
+    const parts = [
+      detail.name,
+      detail.priceMin ? `from ${formatPrice(detail.priceMin)}` : undefined,
+      detail.locationLabel,
+    ].filter(Boolean);
+    const link = WEB_URL ? `${WEB_URL}/projects/${detail.id}` : undefined;
+    const message = link ? `${parts.join(' — ')}\n${link}` : parts.join(' — ');
+    void Share.share({ message, ...(link ? { url: link } : {}) });
+  }, [detail]);
+
+  const scrollToUnits = useCallback(() => {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, unitsY - insets.top - HEADER_BAR_HEIGHT - spacing.base),
+      animated: true,
+    });
+  }, [scrollRef, unitsY, insets.top]);
+
   const height = galleryHeight(width);
 
   if (isLoading) {
     return (
       <Screen edges={['bottom']}>
-        <Skeleton height={galleryHeight(width)} radius={0} />
+        <Skeleton height={height} radius={0} />
         <View className="p-base">
           <Skeleton height={28} className="mb-base" />
           <Skeleton height={120} radius={12} />
@@ -78,7 +160,7 @@ export default function ProjectDetailScreen() {
     );
   }
 
-  if (error || !project) {
+  if (error || !detail) {
     return (
       <Screen>
         <ErrorState title="Could not load this project" onRetry={refresh} />
@@ -86,36 +168,41 @@ export default function ProjectDetailScreen() {
     );
   }
 
-  const images = [
-    ...(project.media?.exteriorImages ?? []),
-    ...(project.media?.droneImages ?? []),
-  ];
-  const builder = typeof project.builder === 'object' ? project.builder : undefined;
-  const amenities = (project.amenities ?? []).filter((a): a is string => typeof a === 'string');
-  const priceMin = project.priceRange?.min;
-  const priceMax = project.priceRange?.max;
+  const { bhk, carpet } = unitSummary(unitTypes);
+  const summaryLine = [bhk, carpet].filter(Boolean).join(' · ');
+  const hasLocation = Boolean(detail.address) || detail.connectivity.length > 0 || detail.nearby.length > 0;
 
   return (
     <Screen unsafe>
-      <Refreshable
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+      <DetailHeader title={detail.name} scrollY={scrollY} onBack={goBack} onShare={handleShare} />
+
+      <Animated.ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: actionBarHeight + spacing.lg }}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.textMuted}
+            colors={[theme.colors.accent]}
+            progressViewOffset={insets.top + HEADER_BAR_HEIGHT}
+          />
+        }
       >
         <View style={{ height }}>
-          {images.length > 0 ? (
+          {detail.gallery.length > 0 ? (
             /*
-              A windowed `FlatList`, not a mapped `ScrollView`.
-
-              The ScrollView this replaces mounted every image at once, so a
-              project with a full set of exterior and drone shots decoded all
-              of them before first paint. Three at a time, recycled, is the
-              same choice `DetailHero` documents at length and for the same
-              reason. `size="medium"` rather than `full` for the same budget:
-              this is a 300pt-tall carousel, not a full-screen viewer.
+              A windowed `FlatList`, not a mapped `ScrollView`: three images
+              decoded at a time, recycled, same choice as `DetailHero`.
+              `size="medium"` because this is a carousel, not a full-screen
+              viewer.
             */
             <FlatList
-              data={images}
+              data={detail.gallery}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -124,9 +211,10 @@ export default function ProjectDetailScreen() {
               windowSize={3}
               removeClippedSubviews
               getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-              renderItem={({ item }) => (
-                <Image uri={item} size="medium" style={{ width, height }} />
-              )}
+              onMomentumScrollEnd={(event) =>
+                setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / width))
+              }
+              renderItem={({ item }) => <Image uri={item} size="medium" style={{ width, height }} />}
             />
           ) : (
             <View className="h-full w-full items-center justify-center bg-surface-muted">
@@ -134,98 +222,69 @@ export default function ProjectDetailScreen() {
             </View>
           )}
 
-          {/*
-            A floating disc rather than a nav bar, because it sits over the
-            gallery. `insets.top` rather than the 48 this used to hard-code:
-            that number was right on exactly one device and put the control
-            under the status bar on any phone with a taller notch.
-          */}
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-            hitSlop={gesture.hitSlop}
-            className="absolute left-base h-10 w-10 items-center justify-center rounded-full bg-black/45"
-            style={{ top: insets.top + spacing.sm }}
-          >
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-          </PressableScale>
+          {detail.gallery.length > 1 ? (
+            <View
+              className="flex-row items-center rounded-full px-sm py-xs"
+              style={{
+                position: 'absolute',
+                bottom: spacing.md,
+                right: spacing.md,
+                backgroundColor: 'rgba(0,0,0,0.6)',
+              }}
+              accessibilityLabel={`Photo ${photoIndex + 1} of ${detail.gallery.length}`}
+            >
+              <Ionicons name="images-outline" size={13} color="#FFFFFF" />
+              <Text variant="caption" style={{ color: '#FFFFFF', marginLeft: 4 }}>
+                {photoIndex + 1}/{detail.gallery.length}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={{ padding: screenPadding }}>
-          {project.basics?.status ? <Badge label={project.basics.status} tone="accent" className="mb-sm" /> : null}
-          <Text variant="title1">{project.basics?.name ?? 'Project'}</Text>
+          {detail.status ? <Badge label={detail.status} tone="accent" className="mb-sm" /> : null}
+          <Text variant="title1">{detail.name}</Text>
 
-          {project.location?.locality || project.location?.city ? (
+          {detail.locationLabel ? (
             <View className="mt-xs flex-row items-center">
               <Ionicons name="location-outline" size={16} color={theme.colors.brand} />
               <Text variant="callout" tone="secondary" className="ml-xs">
-                {[project.location?.locality, project.location?.city].filter(Boolean).join(', ')}
+                {detail.locationLabel}
               </Text>
             </View>
           ) : null}
 
-          {priceMin ? (
+          {detail.priceMin ? (
             <View className="mt-base flex-row items-baseline">
-              <PriceLabel price={priceMin} variant="title2" />
-              {priceMax && priceMax > priceMin ? (
+              <PriceLabel price={detail.priceMin} variant="title2" />
+              {detail.priceMax && detail.priceMax > detail.priceMin ? (
                 <>
                   <Text variant="body" tone="secondary" className="mx-xs">
                     –
                   </Text>
-                  <PriceLabel price={priceMax} variant="title2" />
+                  <PriceLabel price={detail.priceMax} variant="title2" />
                 </>
               ) : null}
             </View>
           ) : null}
 
-          {builder ? (
-            <Card className="mt-lg flex-row items-center">
-              <Avatar uri={builder.logoUrl ?? builder.logo} name={builder.company ?? builder.name} />
-              <View className="ml-base flex-1">
-                <Text variant="bodyEmphasis">{builder.company ?? builder.name}</Text>
-                {builder.city ? (
-                  <Text variant="footnote" tone="secondary">
-                    {builder.city}
-                  </Text>
-                ) : null}
-              </View>
-            </Card>
+          {summaryLine ? (
+            <Text variant="callout" tone="secondary" className="mt-xs">
+              {summaryLine}
+            </Text>
           ) : null}
 
-          {project.basics?.description ? (
-            <View className="mt-lg">
-              <Text variant="title3" className="mb-sm">
-                About
-              </Text>
-              <Text variant="body" tone="secondary">
-                {project.basics.description}
-              </Text>
-            </View>
-          ) : null}
+          {detail.facts.length > 0 ? <FactGrid facts={detail.facts} /> : null}
 
-          {amenities.length > 0 ? (
-            <View className="mt-lg">
-              <Text variant="title3" className="mb-sm">
-                Amenities
-              </Text>
-              {/*
-                `Tag`, not `Badge` — and not `Chip`. Matching the property
-                detail screen, where the same decision is documented: `Chip`
-                renders a Pressable with `accessibilityRole="button"`, so a
-                screen reader announces every amenity as a dead control.
-              */}
-              <View className="flex-row flex-wrap gap-sm">
-                {amenities.map((amenity) => (
-                  <Tag key={amenity} label={amenity} />
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          <View className="mt-lg">
+          {/*
+            Units come before the description and amenities: price and size
+            decide whether a buyer reads further, features come after.
+            `layout.y` is relative to this padded column, which starts below
+            the gallery, so the gallery's height is added back.
+          */}
+          <View className="mt-xl" onLayout={(event) => setUnitsY(height + event.nativeEvent.layout.y)}>
             <Text variant="title3" className="mb-sm">
-              Unit types
+              Units & prices
             </Text>
             {/*
               "No unit types published yet" is a statement about the BUILDER's
@@ -257,45 +316,249 @@ export default function ProjectDetailScreen() {
                 No unit types published yet.
               </Text>
             ) : (
-              unitTypes.map((unitType) => (
-                <UnitTypeRow
-                  key={unitType._id}
-                  unitType={unitType}
-                  onPress={() => router.push(`/projects/unit/${unitType._id}`)}
-                />
-              ))
+              <Card padded={false}>
+                {unitTypes.map((unitType, index) => (
+                  <UnitTypeRow
+                    key={unitType._id}
+                    unitType={unitType}
+                    divided={index > 0}
+                    onPress={() => router.push(`/projects/unit/${unitType._id}`)}
+                  />
+                ))}
+              </Card>
             )}
           </View>
+
+          {detail.description ? (
+            <Section title="About">
+              <ExpandableText text={detail.description} />
+            </Section>
+          ) : null}
+
+          {detail.amenities.length > 0 ? (
+            <Section title={`Amenities (${detail.amenities.length})`}>
+              <DetailIconList
+                items={(showAllAmenities ? detail.amenities : detail.amenities.slice(0, AMENITY_PREVIEW)).map(
+                  (name) => ({ key: name, icon: 'checkmark-circle', label: name })
+                )}
+                iconTone="success"
+                surface
+              />
+              {detail.amenities.length > AMENITY_PREVIEW ? (
+                <PressableScale
+                  accessibilityRole="button"
+                  onPress={() => setShowAllAmenities((open) => !open)}
+                  className="mt-sm self-start"
+                  hitSlop={gesture.hitSlop}
+                >
+                  <Text variant="callout" tone="accent">
+                    {showAllAmenities ? 'Show fewer' : `Show all ${detail.amenities.length}`}
+                  </Text>
+                </PressableScale>
+              ) : null}
+            </Section>
+          ) : null}
+
+          {hasLocation ? (
+            <Section title="Location">
+              {detail.address ? (
+                <View className="mb-base flex-row">
+                  <Ionicons name="map-outline" size={18} color={theme.colors.textMuted} />
+                  <Text variant="callout" tone="secondary" className="ml-sm flex-1">
+                    {detail.address}
+                  </Text>
+                </View>
+              ) : null}
+              {detail.connectivity.length > 0 ? <DistanceStrip items={detail.connectivity} /> : null}
+              {detail.nearby.length > 0 ? (
+                <NearbyList places={detail.nearby} spaced={detail.connectivity.length > 0} />
+              ) : null}
+            </Section>
+          ) : null}
+
+          {detail.builderName ? (
+            <Section title="Builder">
+              <Card className="flex-row items-center">
+                <Avatar uri={detail.builderLogo} name={detail.builderName} />
+                <View className="ml-base flex-1">
+                  <Text variant="bodyEmphasis">{detail.builderName}</Text>
+                  {detail.builderCity ? (
+                    <Text variant="footnote" tone="secondary">
+                      {detail.builderCity}
+                    </Text>
+                  ) : null}
+                </View>
+              </Card>
+            </Section>
+          ) : null}
         </View>
-      </Refreshable>
+      </Animated.ScrollView>
+
+      {/* Only once there are units to go to: a button that scrolls to "No
+          unit types published yet" would be a promise the page cannot keep. */}
+      {unitTypes.length > 0 ? (
+        <View
+          className="absolute inset-x-0 bottom-0 border-t border-border bg-surface px-base pt-sm"
+          style={{ paddingBottom: insets.bottom + spacing.sm }}
+          onLayout={(event) => setActionBarHeight(event.nativeEvent.layout.height)}
+        >
+          <Button label="See units & prices" fullWidth onPress={scrollToUnits} />
+        </View>
+      ) : null}
     </Screen>
   );
 }
 
-function UnitTypeRow({ unitType, onPress }: { unitType: UnitType; onPress: () => void }) {
+/**
+ * Key facts as one card, two per row: icon, small label, bold value.
+ *
+ * Replaced five `Stat` tiles (2026-10-26). Each tile set its value at title2
+ * in a 16pt-padded box, so five facts filled a whole screen and the fifth sat
+ * alone beside a gap. The label above the value is what makes "1 · G+31"
+ * readable at all.
+ */
+function FactGrid({ facts }: { facts: ProjectDetailView['facts'] }) {
+  const theme = useTheme();
+  return (
+    // The grid is an inner View: `Card` spreads its props after its own
+    // `style`, so a `style` passed to it would drop the padding and shadow.
+    <Card className="mt-lg">
+      <View className="flex-row flex-wrap" style={{ rowGap: spacing.base }}>
+        {facts.map((fact) => (
+          <View key={fact.key} className="flex-row items-center" style={{ width: '50%' }}>
+            <View
+              className="items-center justify-center rounded-full"
+              style={{ width: 36, height: 36, backgroundColor: theme.colors.accentMuted }}
+            >
+              <Ionicons name={FACT_ICON[fact.key]} size={18} color={theme.colors.accent} />
+            </View>
+            <View className="ml-sm flex-1">
+              <Text variant="caption" tone="muted">
+                {fact.label}
+              </Text>
+              <Text variant="bodyEmphasis" numberOfLines={1}>
+                {fact.value}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+/** Distances in one row: the number large, what it is to underneath. */
+function DistanceStrip({ items }: { items: ProjectDetailView['connectivity'] }) {
+  const theme = useTheme();
+  return (
+    <Card padded={false} className="flex-row">
+      {items.map((item, index) => (
+        <View
+          key={item.kind}
+          className="flex-1 items-center py-md"
+          style={index > 0 ? { borderLeftWidth: 1, borderLeftColor: theme.colors.border } : undefined}
+        >
+          <Ionicons name={CONNECTIVITY_ICON[item.kind]} size={20} color={theme.colors.textMuted} />
+          <Text variant="bodyEmphasis" numberOfLines={1} className="mt-xs">
+            {item.distance}
+          </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {item.label}
+          </Text>
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+/** One place per line, distance on the right, so neither is cut off. */
+function NearbyList({ places, spaced }: { places: ProjectDetailView['nearby']; spaced: boolean }) {
+  const theme = useTheme();
+  return (
+    <Card className={spaced ? 'mt-base' : undefined}>
+      <Text variant="footnote" tone="secondary" className="mb-xs">
+        Nearby
+      </Text>
+      {places.map((place, index) => (
+        <View
+          key={`${place.name}-${index}`}
+          className="flex-row items-center py-sm"
+          style={index > 0 ? { borderTopWidth: 1, borderTopColor: theme.colors.border } : undefined}
+        >
+          <Ionicons name="location-outline" size={16} color={theme.colors.textMuted} />
+          <Text variant="callout" className="ml-sm flex-1">
+            {place.name}
+          </Text>
+          {place.distance ? (
+            <Text variant="footnote" tone="secondary" className="ml-sm">
+              {place.distance}
+            </Text>
+          ) : null}
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View className="mt-xl">
+      <Text variant="title3" className="mb-sm">
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * One row of the units table: what it is and how big on the left, the price
+ * on the right where the eye compares it with the next row's. Rows share one
+ * card with hairlines between them, the configuration table the portals use,
+ * instead of a card each.
+ */
+function UnitTypeRow({
+  unitType,
+  divided,
+  onPress,
+}: {
+  unitType: UnitType;
+  divided: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   const price = unitType.pricing?.effectivePrice ?? unitType.pricing?.basePrice;
   // `availableUnits`, not `available` — the latter is not a field on this model
   // and read `undefined` every time, so this row never showed a count.
   const available = unitType.inventory?.availableUnits;
+  const carpet = unitType.area?.carpetSqft;
+  const name =
+    unitType.config?.name ?? (unitType.config?.bedrooms ? `${unitType.config.bedrooms} BHK` : 'Unit type');
 
-  // `Card`'s own `onPress`, not a wrapping `Pressable` — that one carried no
-  // `style` callback, so the row acknowledged a touch with nothing at all.
   return (
-    <Card onPress={onPress} className="mb-base flex-row items-center justify-between">
-      <View className="flex-1 pr-base">
-        <Text variant="bodyEmphasis">{unitType.config?.name ?? 'Unit type'}</Text>
-        <Text variant="footnote" tone="secondary" className="mt-xs">
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={`${name}${price ? `, ${formatPrice(price)}` : ''}`}
+      onPress={onPress}
+      activeScale={0.99}
+      className="flex-row items-center px-base py-md"
+      style={divided ? { borderTopWidth: 1, borderTopColor: theme.colors.border } : undefined}
+    >
+      <View className="flex-1 pr-sm">
+        <Text variant="bodyEmphasis" numberOfLines={1}>
+          {name}
+        </Text>
+        <Text variant="footnote" tone="secondary" numberOfLines={1} className="mt-xs">
           {[
-            unitType.config?.bedrooms ? `${unitType.config.bedrooms} BHK` : undefined,
+            carpet ? `${carpet.toLocaleString('en-IN')} sq ft` : undefined,
             typeof available === 'number' ? `${available} available` : undefined,
           ]
             .filter(Boolean)
             .join(' · ')}
         </Text>
-        {price ? <PriceLabel price={price} variant="callout" className="mt-xs" /> : null}
       </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-    </Card>
+      {price ? <PriceLabel price={price} variant="bodyEmphasis" /> : null}
+      <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} style={{ marginLeft: 4 }} />
+    </PressableScale>
   );
 }

@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { radius, useTheme } from '@/theme';
-import { Image, PriceLabel, Text } from '@/ui';
+import { spacing, useTheme } from '@/theme';
+import { Card, Image, PriceLabel, Text } from '@/ui';
 import type { ProjectSummary } from '../types';
 
 /**
@@ -16,7 +16,7 @@ import type { ProjectSummary } from '../types';
  */
 
 const COVER_HEIGHT = 190;
-const COVER_STYLE = { width: '100%', height: COVER_HEIGHT, borderRadius: radius.lg } as const;
+const COVER_STYLE = { width: '100%', height: COVER_HEIGHT } as const;
 
 export interface ProjectListCardProps {
   project: ProjectSummary;
@@ -30,12 +30,16 @@ function ProjectListCardComponent({ project, onPress }: ProjectListCardProps) {
   const hasRange =
     project.priceMin !== undefined && project.priceMax !== undefined && project.priceMax > project.priceMin;
 
+  // A raised `Card` like the property cards in Search, with the photo clipped
+  // to its top corners. The text used to sit straight on the page, so one
+  // project's price ran into the next project's photo.
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={project.name}
+    <Card
       onPress={handlePress}
-      className="active:opacity-90"
+      accessibilityLabel={project.name}
+      radius="xl"
+      padded={false}
+      className="overflow-hidden"
     >
       <View>
         {project.coverImage ? (
@@ -56,37 +60,46 @@ function ProjectListCardComponent({ project, onPress }: ProjectListCardProps) {
             </Text>
           </View>
         ) : null}
+      </View>
 
-        <View className="mt-sm">
-          <Text variant="bodyEmphasis" numberOfLines={1}>
-            {project.name}
+      <View style={{ padding: spacing.base }}>
+        {project.priceMin !== undefined ? (
+          <View className="flex-row items-baseline">
+            <PriceLabel price={project.priceMin} variant="title3" />
+            {hasRange ? (
+              <Text variant="caption" tone="muted" className="ml-xs">
+                onwards
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <Text variant="bodyEmphasis" numberOfLines={1} className="mt-xs">
+          {project.name}
+        </Text>
+        {project.builderName ? (
+          <Text variant="footnote" tone="muted" numberOfLines={1}>
+            by {project.builderName}
           </Text>
-          {project.builderName ? (
-            <Text variant="caption" tone="muted" numberOfLines={1} className="mt-xs">
-              by {project.builderName}
-            </Text>
-          ) : null}
+        ) : null}
 
+        <View className="mt-sm flex-row items-center">
+          <Ionicons name="location-outline" size={14} color={theme.colors.brand} />
+          <Text variant="footnote" tone="secondary" numberOfLines={1} className="ml-xs flex-1">
+            {project.locationLabel || 'Location not listed'}
+          </Text>
+        </View>
+
+        {project.possession ? (
           <View className="mt-xs flex-row items-center">
-            <Ionicons name="location-outline" size={13} color={theme.colors.brand} />
-            <Text variant="footnote" tone="secondary" numberOfLines={1} className="ml-xs flex-1">
-              {project.locationLabel || 'Location not listed'}
+            <Ionicons name="key-outline" size={14} color={theme.colors.textMuted} />
+            <Text variant="footnote" tone="secondary" className="ml-xs">
+              Possession {project.possession}
             </Text>
           </View>
-
-          {project.priceMin !== undefined ? (
-            <View className="mt-xs flex-row items-baseline">
-              <PriceLabel price={project.priceMin} variant="title3" />
-              {hasRange ? (
-                <Text variant="caption" tone="muted" className="ml-xs">
-                  onwards
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
+        ) : null}
       </View>
-    </Pressable>
+    </Card>
   );
 }
 

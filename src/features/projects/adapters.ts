@@ -1,4 +1,4 @@
-import type { Builder, Project } from '@/types/backend/project';
+import type { Builder, Project, UnitType } from '@/types/backend/project';
 import type { ProjectSummary } from './types';
 
 /**
@@ -84,6 +84,161 @@ export function adaptProject(project: Project): ProjectSummary {
 
     unitTypeCount: project.unitTypeCount ?? 0,
 
+    possession: formatMonthYear(project.overview?.possessionDate),
+
     createdAt: project.createdAt,
+  };
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * "Dec 2029". UTC on purpose: the admin form stores midnight UTC, and reading
+ * it in a zone west of UTC would turn 1 Jan into the previous December.
+ */
+export function formatMonthYear(iso: unknown): string | undefined {
+  if (typeof iso !== 'string' || !iso) return undefined;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
+function text(value: unknown): string | undefined {
+  if (typeof value === 'number') return value > 0 ? String(value) : undefined;
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+/**
+ * The one line Indian portals lead a project with: what sizes, how big.
+ * "2, 3 BHK" and "720 – 980 sq ft carpet", each left out when no unit type
+ * carries it. Carpet area, not super built-up: it is the figure RERA makes
+ * builders quote, so it is the one a buyer can compare across projects.
+ */
+export function unitSummary(unitTypes: readonly UnitType[]): { bhk?: string; carpet?: string } {
+  const bedrooms = [
+    ...new Set(unitTypes.map((u) => u.config?.bedrooms).filter((n): n is number => typeof n === 'number' && n > 0)),
+  ].sort((a, b) => a - b);
+  const carpet = unitTypes
+    .map((u) => u.area?.carpetSqft)
+    .filter((n): n is number => typeof n === 'number' && n > 0);
+
+  const min = Math.min(...carpet);
+  const max = Math.max(...carpet);
+  const sqft = (n: number) => n.toLocaleString('en-IN');
+
+  return {
+    bhk: bedrooms.length > 0 ? `${bedrooms.join(', ')} BHK` : undefined,
+    carpet:
+      carpet.length === 0
+        ? undefined
+        : min === max
+          ? `${sqft(min)} sq ft carpet`
+          : `${sqft(min)} – ${sqft(max)} sq ft carpet`,
+  };
+}
+
+export type ConnectivityKind = 'metro' | 'airport' | 'railway' | 'bus';
+
+export interface ProjectDetailView extends ProjectSummary {
+  description?: string;
+  builderCity?: string;
+  /** Exterior, drone, amenity photos, then the master plan; duplicates dropped. */
+  gallery: string[];
+  /** Only the facts the project actually has; zeros and blanks are left out. */
+  facts: { key: ProjectFactKey; label: string; value: string }[];
+  /** Names only, deduplicated. Categories are dropped: six headings over ten
+   *  amenities took more room than the amenities did. */
+  amenities: string[];
+  /** "Plot No. 5A, Sector 36, Kharghar", with the landmark when there is one. */
+  address?: string;
+  connectivity: { kind: ConnectivityKind; label: string; distance: string }[];
+  nearby: { name: string; distance?: string }[];
+}
+
+export type ProjectFactKey = 'possession' | 'launch' | 'towers' | 'units' | 'land';
+
+// Short labels: they share a half-width column with the distance, and
+// "Railway station · 25 km" wrapped on a 390pt phone.
+const CONNECTIVITY: { kind: ConnectivityKind; field: string; label: string }[] = [
+  { kind: 'metro', field: 'distanceToMetro', label: 'Metro' },
+  { kind: 'airport', field: 'distanceToAirport', label: 'Airport' },
+  { kind: 'railway', field: 'distanceToRailway', label: 'Train' },
+  { kind: 'bus', field: 'distanceToBusStop', label: 'Bus' },
+];
+
+/**
+ * Everything the project detail screen shows, resolved once.
+ *
+ * The admin panel writes amenities and nearby places as objects; records from
+ * before that form hold plain strings. The screen used to keep strings only,
+ * so on live data the Amenities section never rendered at all.
+ */
+export function adaptProjectDetail(project: Project): ProjectDetailView {
+  const summary = adaptProject(project);
+  const builder = populatedBuilder(project.builder);
+  const media = project.media;
+  const overview = project.overview;
+  const location = project.location;
+
+  const gallery = [
+    ...new Set(
+      [
+        ...(media?.exteriorImages ?? []),
+        ...(media?.droneImages ?? []),
+        ...(media?.amenityImages ?? []),
+        ...(media?.masterPlan ?? []),
+      ].filter((uri): uri is string => typeof uri === 'string' && uri.length > 0)
+    ),
+  ];
+
+  const towers = text(overview?.totalTowers);
+  const floors = text(overview?.floorsPerTower);
+  const facts: { key: ProjectFactKey; label: string; value: string | undefined }[] = [
+    { key: 'possession', label: 'Possession', value: summary.possession },
+    { key: 'launch', label: 'Launched', value: formatMonthYear(overview?.launchDate) },
+    {
+      key: 'towers',
+      label: towers === '1' ? 'Tower' : 'Towers',
+      value: towers ? (floors ? `${towers} · ${floors}` : towers) : undefined,
+    },
+    { key: 'units', label: 'Total units', value: text(overview?.totalUnits) },
+    { key: 'land', label: 'Land area', value: text(overview?.totalLandArea) },
+  ];
+
+  const amenities: string[] = [];
+  for (const amenity of project.amenities ?? []) {
+    const name =
+      typeof amenity === 'string' ? text(amenity) : text((amenity as { name?: unknown })?.name);
+    if (name && !amenities.includes(name)) amenities.push(name);
+  }
+
+  const street = text(location?.addressLine) ?? text(location?.address);
+  const landmark = text(location?.landmark);
+
+  const nearby = (project.nearbyPlaces ?? []).flatMap((place) => {
+    if (typeof place === 'string') {
+      const name = text(place);
+      return name ? [{ name }] : [];
+    }
+    const { name, distance } = (place ?? {}) as { name?: unknown; distance?: unknown };
+    const label = text(name);
+    return label ? [{ name: label, distance: text(distance) }] : [];
+  });
+
+  return {
+    ...summary,
+    description: text(project.basics?.description),
+    builderCity: text(builder?.city),
+    gallery,
+    facts: facts.filter((fact): fact is { key: ProjectFactKey; label: string; value: string } =>
+      Boolean(fact.value)
+    ),
+    amenities,
+    address: street ? (landmark ? `${street} · ${landmark}` : street) : landmark,
+    connectivity: CONNECTIVITY.flatMap(({ kind, field, label }) => {
+      const distance = text(location?.connectivity?.[field]);
+      return distance ? [{ kind, label, distance }] : [];
+    }),
+    nearby,
   };
 }

@@ -41,5 +41,8 @@ export interface ProjectSummary {
 
   unitTypeCount: number;
 
+  /** "Dec 2029", from `overview.possessionDate`. */
+  possession?: string;
+
   createdAt?: string;
 }
