@@ -267,8 +267,6 @@ export default function HomeScreen() {
     }
   }, [queryClient]);
 
-  const hasUnread = notifications.items.some((item) => !item.isRead);
-
   return (
     // The screen's own background is the brand colour so the safe area above
     // the hero is filled by the hero rather than by a white strip; the scroll
@@ -425,14 +423,12 @@ export default function HomeScreen() {
         pinOffset={pinOffset}
         name={user?.name}
         avatarUri={user?.profileImage}
-        hasUnread={hasUnread}
         city={city}
         searchValue={searchText}
         onSearchValueChange={setSearchText}
         onSubmitSearch={(term) => openSearch(term ? { search: term } : undefined)}
         onOpenProperty={openProperty}
         onOpenProfile={() => router.push('/(tabs)/profile')}
-        onOpenUpdates={() => router.push('/(tabs)/updates')}
         onOpenCityPicker={() => setCityPickerOpen(true)}
         canList={listingState.kind === 'ownerEmpty'}
         onAddListing={openListing}

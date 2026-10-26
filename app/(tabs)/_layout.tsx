@@ -1,6 +1,9 @@
 import { Tabs } from 'expo-router';
 
+import { useNotifications } from '@/features/notifications';
 import { TabBar } from '@/ui';
+
+const UPDATES_UNREAD = ['updates'] as const;
 
 /**
  * Tab shell.
@@ -58,8 +61,16 @@ import { TabBar } from '@/ui';
  * keep it out of the bar.
  */
 export default function TabsLayout() {
+  // Same query as Home and Updates, so this reads the shared cache. The dot on
+  // the dock's bell is the only unread signal outside the Updates tab itself.
+  const { unreadCount } = useNotifications();
+  const unreadRoutes = unreadCount > 0 ? UPDATES_UNREAD : undefined;
+
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <TabBar {...props} unreadRoutes={unreadRoutes} />}
+    >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="search" options={{ title: 'Search' }} />
       <Tabs.Screen name="activity" options={{ title: 'Activity' }} />

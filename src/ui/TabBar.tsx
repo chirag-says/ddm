@@ -293,7 +293,11 @@ interface TabTransition {
   fromDist: SharedValue<number[]>;
 }
 
-export type TabBarProps = BottomTabBarProps;
+export type TabBarProps = BottomTabBarProps & {
+  /** Route names whose icon carries an unread dot. Passed in by the tabs
+   *  layout: this file stays free of feature data. */
+  unreadRoutes?: readonly string[];
+};
 
 /** Gap under the dock: clears the home indicator when there is one, and still
  *  floats off the bottom edge on a device without one. */
@@ -310,7 +314,7 @@ export function useDockInset() {
   return DOCK_HEIGHT + dockBottomGap(useSafeAreaInsets().bottom);
 }
 
-export function TabBar({ state, navigation }: TabBarProps) {
+export function TabBar({ state, navigation, unreadRoutes }: TabBarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -500,6 +504,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
               spec={spec}
               index={index}
               focused={index === activeIndex}
+              unread={unreadRoutes?.includes(route.name) ?? false}
               reduceMotion={reduceMotion}
               labelSlot={labelSlot}
               onMeasureLabel={reportLabelWidth}
@@ -603,6 +608,7 @@ function TabItem({
   spec,
   index,
   focused,
+  unread,
   reduceMotion,
   labelSlot,
   transition,
@@ -612,6 +618,7 @@ function TabItem({
   spec: { label: string; icon: keyof typeof Ionicons.glyphMap };
   index: number;
   focused: boolean;
+  unread: boolean;
   reduceMotion: boolean;
   /** Shared by every tab, so the content width is identical in every state. */
   labelSlot: number;
@@ -689,7 +696,7 @@ function TabItem({
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={spec.label}
+      accessibilityLabel={unread ? spec.label + ', you have unread items' : spec.label}
       accessibilityState={{ selected: focused }}
       activeScale={0.97}
       onPress={focused ? undefined : onPress}
@@ -720,7 +727,12 @@ function TabItem({
         ]}
       />
 
-      <TabIcon icon={spec.icon} progress={colour} />
+      <View>
+        <TabIcon icon={spec.icon} progress={colour} />
+        {unread ? (
+          <View style={[styles.unreadDot, { backgroundColor: theme.colors.danger }]} />
+        ) : null}
+      </View>
 
       <Animated.View style={[styles.labelClip, labelStyle]}>
         <Text
@@ -783,6 +795,14 @@ function TabItem({
 const styles = StyleSheet.create({
   pillFill: {
     borderRadius: radius.full,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -1,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   iconBox: {
     width: ICON_SIZE,

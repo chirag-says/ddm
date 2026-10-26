@@ -33,17 +33,20 @@ import { HomeSearchField } from './HomeSearchField';
  *
  *   wordmark        x 40, y 95 (25 below the status bar), 258 wide
  *   city chip       right-aligned group, 48 tall, scheme glass (useHeroScheme)
- *   bell            60 circle, scheme glass (useHeroScheme)
  *   avatar          60 circle, scheme fill (useHeroScheme); 30 from the right edge
  *   controls        centred on the wordmark's line, 14 apart
  *
  * The wordmark is the website's `dealdirect_logo.png`, drawn as it is: no
- * tagline under it (2026-09-06). The city chip is smaller than the two
- * circles beside it so the wordmark keeps its full width on a narrow phone;
+ * tagline under it (2026-09-06). The city chip is smaller than the circle
+ * beside it so the wordmark keeps its full width on a narrow phone;
  * before, a 230-wide chip left the logo's `flex: 1` column too little room
- * and the image shrank to fit. The bell and the avatar use the dock's own
- * glyphs at rest, `notifications-outline` and `person-outline`, so the same
- * destination looks the same at the top of the screen and the bottom.
+ * and the image shrank to fit. The avatar uses the dock's own glyph at rest,
+ * `person-outline`, so the same destination looks the same at the top of the
+ * screen and the bottom.
+ *
+ * No bell (2026-10-26): it opened the Updates tab the dock already holds, and
+ * its unread dot moved onto the dock's Updates icon. The owner button took the
+ * room, grew to 56 tall, and says "Post property": "listing" is trade jargon.
  *
  * ---------------------------------------------------------------------------
  * TRANSPARENT AT REST, SOLID ONCE SCROLLED
@@ -72,7 +75,6 @@ export interface HomeHeaderProps {
   pinOffset: number;
   name?: string;
   avatarUri?: string;
-  hasUnread: boolean;
   city: City | null;
   /** Shared with the hero's copy — they are one field. See `HomeSearchField`. */
   searchValue: string;
@@ -80,7 +82,6 @@ export interface HomeHeaderProps {
   onSubmitSearch: (term: string) => void;
   onOpenProperty: (id: string) => void;
   onOpenProfile: () => void;
-  onOpenUpdates: () => void;
   onOpenCityPicker: () => void;
   /**
    * The signed-in user is an owner with no listing yet. The city chip gives
@@ -110,14 +111,12 @@ export function HomeHeader({
   pinOffset,
   name,
   avatarUri,
-  hasUnread,
   city,
   searchValue,
   onSearchValueChange,
   onSubmitSearch,
   onOpenProperty,
   onOpenProfile,
-  onOpenUpdates,
   onOpenCityPicker,
   canList = false,
   onAddListing,
@@ -230,26 +229,26 @@ export function HomeHeader({
           {canList && onAddListing ? (
             <PressableScale
               accessibilityRole="button"
-              accessibilityLabel="Add your listing"
+              accessibilityLabel="Post your property"
               onPress={onAddListing}
               activeScale={0.96}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: mockPx(8),
-                height: mockPx(48),
-                paddingHorizontal: mockPx(18),
-                borderRadius: mockPx(24),
+                height: mockPx(56),
+                paddingHorizontal: mockPx(22),
+                borderRadius: mockPx(28),
                 backgroundColor: theme.colors.brand,
               }}
             >
-              <Ionicons name="add-circle-outline" size={mockPx(22)} color={HERO_TEXT} />
+              <Ionicons name="add-circle-outline" size={mockPx(26)} color={HERO_TEXT} />
               <Text
                 variant="bodyEmphasis"
                 numberOfLines={1}
-                style={{ color: HERO_TEXT, fontSize: mockPx(21), lineHeight: mockPx(26) }}
+                style={{ color: HERO_TEXT, fontSize: mockPx(24), lineHeight: mockPx(30) }}
               >
-                Add listing
+                Post property
               </Text>
             </PressableScale>
           ) : (
@@ -282,30 +281,6 @@ export function HomeHeader({
               <Ionicons name="chevron-down" size={mockPx(18)} color={hero.headerInk} />
             </PressableScale>
           )}
-
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={hasUnread ? 'Updates, you have unread items' : 'Updates'}
-            hitSlop={gesture.hitSlop}
-            onPress={onOpenUpdates}
-            activeScale={0.94}
-            style={control}
-          >
-            <Ionicons name="notifications-outline" size={mockPx(32)} color={hero.headerInk} />
-            {hasUnread ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: mockPx(12),
-                  right: mockPx(14),
-                  width: mockPx(12),
-                  height: mockPx(12),
-                  borderRadius: mockPx(6),
-                  backgroundColor: '#F33F40',
-                }}
-              />
-            ) : null}
-          </PressableScale>
 
           <PressableScale
             accessibilityRole="button"
