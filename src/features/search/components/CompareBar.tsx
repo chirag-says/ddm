@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/theme';
-import { Button, Image, Text } from '@/ui';
+import { gesture, spacing, useTheme } from '@/theme';
+import { Button, Image, Text, useDockInset } from '@/ui';
 import { MIN_COMPARE, type ComparableProperty } from '../compare';
 
 /**
@@ -23,6 +22,15 @@ import { MIN_COMPARE, type ComparableProperty } from '../compare';
  * Now the bar IS the mode indicator. It states what to do at zero, the count
  * once there is one, and it always carries the way out - which is the other
  * thing an unmissable mode owes the user.
+ *
+ * ---------------------------------------------------------------------------
+ * THE WAY OUT IS IN THE HEADER, AT EVERY COUNT (2026-10-26)
+ *
+ * Exit used to be the left button only at zero and turned into Clear on the
+ * first selection, so leaving the mode meant scrolling back to the toolbar at
+ * the top of the list. "Exit compare" now sits beside the count at every count; Clear
+ * stays Clear. The bar also starts above the floating dock: pinned to the
+ * screen edge, the dock covered both buttons.
  */
 export interface CompareBarProps {
   items: readonly ComparableProperty[];
@@ -43,20 +51,39 @@ export function CompareBar({
   onExit,
 }: CompareBarProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const dockInset = useDockInset();
 
   if (!active) return null;
 
   return (
     <View
       className="absolute inset-x-0 bottom-0 border-t border-border bg-surface px-base pt-sm"
-      style={{ paddingBottom: insets.bottom + 8 }}
+      // The surface runs to the screen edge and the dock floats on it; the
+      // controls end above the dock.
+      style={{ paddingBottom: dockInset + spacing.sm }}
     >
-      <Text variant="footnote" tone="secondary">
-        {items.length === 0
-          ? 'Select ' + MIN_COMPARE + ' or more properties to compare'
-          : items.length + (items.length === 1 ? ' property' : ' properties') + ' selected for comparison'}
-      </Text>
+      <View className="flex-row items-center justify-between">
+        <Text variant="footnote" tone="secondary" className="flex-1">
+          {items.length === 0
+            ? 'Select ' + MIN_COMPARE + ' or more properties to compare'
+            : items.length + (items.length === 1 ? ' property' : ' properties') + ' selected for comparison'}
+        </Text>
+        {/* Tinted like the lit compare toggle in the toolbar, so it reads as
+            the off switch for that same mode. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Exit compare mode"
+          hitSlop={gesture.hitSlop}
+          onPress={onExit}
+          className="ml-sm flex-row items-center rounded-full px-md"
+          style={{ minHeight: 36, backgroundColor: theme.colors.accentMuted }}
+        >
+          <Ionicons name="close" size={18} color={theme.colors.accent} />
+          <Text variant="callout" tone="accent" className="ml-xs" style={{ fontWeight: '600' }}>
+            Exit compare
+          </Text>
+        </Pressable>
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-sm" contentContainerStyle={CHIP_ROW_STYLE}>
         {items.map((item) => (
@@ -80,14 +107,15 @@ export function CompareBar({
         ))}
       </ScrollView>
 
-      <View className="mt-sm flex-row items-center gap-sm pb-sm">
+      <View className="mt-sm flex-row items-center gap-sm">
         {/* Exit leaves the mode; Clear only empties the selection. Two
             different things, and collapsing them would mean a user who wants
             to keep comparing but start over has to re-enter the mode. */}
         <Button
-          label={items.length === 0 ? 'Exit compare' : 'Clear'}
+          label="Clear"
           variant="secondary"
-          onPress={items.length === 0 ? onExit : onClear}
+          disabled={items.length === 0}
+          onPress={onClear}
           className="flex-1"
         />
         <Button

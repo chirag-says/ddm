@@ -295,6 +295,21 @@ interface TabTransition {
 
 export type TabBarProps = BottomTabBarProps;
 
+/** Gap under the dock: clears the home indicator when there is one, and still
+ *  floats off the bottom edge on a device without one. */
+function dockBottomGap(bottomInset: number) {
+  return bottomInset > 0 ? bottomInset : spacing.base;
+}
+
+/**
+ * Distance from the screen's bottom edge to the top of the dock. Anything
+ * pinned to the bottom of a tab screen (the compare bar) sits above this, or
+ * the dock covers it.
+ */
+export function useDockInset() {
+  return DOCK_HEIGHT + dockBottomGap(useSafeAreaInsets().bottom);
+}
+
 export function TabBar({ state, navigation }: TabBarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -433,9 +448,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
         right: 0,
         bottom: 0,
         paddingHorizontal: spacing.base,
-        // Clears the home indicator when there is one, and still floats off
-        // the bottom edge on a device without one.
-        paddingBottom: insets.bottom > 0 ? insets.bottom : spacing.base,
+        paddingBottom: dockBottomGap(insets.bottom),
       }}
     >
       <Animated.View

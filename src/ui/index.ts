@@ -72,5 +72,5 @@ export { Gradient, linearGradient, type GradientProps } from './Gradient';
 export { Scrim, type ScrimProps } from './Scrim';
 export { PressableScale, type PressableScaleProps } from './PressableScale';
 export { Rail, railImageHeight, useRailItemWidth, type RailProps, type RailSize } from './Rail';
-export { TabBar, type TabBarProps } from './TabBar';
+export { TabBar, useDockInset, type TabBarProps } from './TabBar';
 export { OfflineBanner } from './OfflineBanner';
