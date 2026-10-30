@@ -240,10 +240,13 @@ export default function HomeScreen() {
     return { kind: 'ownerListed', newLeads: ownerLeads.total };
   }, [signedIn, isOwner, ownerProperties.isLoading, ownerProperties.properties, ownerLeads.total]);
 
+  // Any signed-in account may post: the form admits non-owners
+  // (`allowNewOwners`), verifies the phone at submit, and the first listing
+  // makes the account an owner server-side. Sending a non-owner to Profile
+  // first was a dead end (2026-10-30).
   const openListing = useCallback(() => {
     if (!signedIn) return router.push('/(auth)/login');
-    if (!isOwner) return router.push('/(tabs)/profile');
-    if ((ownerProperties.properties?.length ?? 0) === 0) return router.push('/owner/property/new');
+    if (!isOwner || (ownerProperties.properties?.length ?? 0) === 0) return router.push('/owner/property/new');
     return router.push('/owner/properties');
   }, [signedIn, isOwner, ownerProperties.properties, router]);
 
@@ -430,7 +433,10 @@ export default function HomeScreen() {
         onOpenProperty={openProperty}
         onOpenProfile={() => router.push('/(tabs)/profile')}
         onOpenCityPicker={() => setCityPickerOpen(true)}
-        canList={listingState.kind === 'ownerEmpty'}
+        // Every signed-in account that has not posted, owner or not
+        // (Chirag, 2026-10-30). Only someone with a listing, or a guest,
+        // keeps the city chip.
+        canList={listingState.kind === 'ownerEmpty' || listingState.kind === 'buyer'}
         onAddListing={openListing}
       />
 

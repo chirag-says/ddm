@@ -84,10 +84,12 @@ export interface HomeHeaderProps {
   onOpenProfile: () => void;
   onOpenCityPicker: () => void;
   /**
-   * The signed-in user is an owner with no listing yet. The city chip gives
-   * way to "Add listing" for them (2026-09-06): an owner account exists to
-   * post one property, and until it has, that is the thing the top of Home
-   * should offer. Everyone else keeps the city chip.
+   * The signed-in user has not posted a property yet, owner or not. The city
+   * chip gives way to "Post property" for them. Until 2026-10-30 this was
+   * owners only, but a new account is not an owner until its first listing,
+   * so a fresh sign-up never saw the button (Chirag's call to widen it, with
+   * the city chip given up for those accounts). Guests and accounts with a
+   * listing keep the city chip.
    */
   canList?: boolean;
   onAddListing?: () => void;
