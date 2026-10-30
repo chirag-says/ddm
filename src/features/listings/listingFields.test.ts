@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { appendListingFields, reconcileType, selectCategory } from './listingFields.ts';
+import { defaultPhotoCategory } from './catalog.ts';
+import {
+  appendListingFields,
+  firstBlockedStep,
+  PHOTOS_STEP,
+  reconcileType,
+  selectCategory,
+  stepBlocker,
+} from './listingFields.ts';
 import { EMPTY_LISTING_FORM, type ListingFormValues } from './types.ts';
 
 /** The fields as the server receives them. Repeated keys would be a bug, so they throw. */
@@ -134,5 +142,66 @@ describe('choosing a category', () => {
   it('a type the server does not know is cleared', () => {
     const seeded = { categoryName: 'Residential', propertyTypeName: 'Castle' };
     assert.deepEqual(reconcileType(seeded, TAXONOMY), { propertyTypeName: '' });
+  });
+});
+
+describe('what each step requires', () => {
+  const complete: ListingFormValues = {
+    ...EMPTY_LISTING_FORM,
+    categoryName: 'Residential',
+    propertyTypeName: 'Apartment / Flat',
+    title: '2 BHK in Kharghar',
+    locality: 'Kharghar',
+    city: 'Navi Mumbai',
+    price: '9500000',
+    builtUpSqft: '950',
+    bhkType: '2 BHK',
+  };
+
+  it('the Photos step cannot be left with no photo', () => {
+    assert.equal(stepBlocker(PHOTOS_STEP, complete, 0), 'Add at least one photo to continue.');
+    assert.equal(stepBlocker(PHOTOS_STEP, complete, 1), null);
+  });
+
+  it('a home with no BHK chosen cannot leave Details', () => {
+    assert.equal(stepBlocker(4, { ...complete, bhkType: '' }, 1), 'Choose the BHK to continue.');
+  });
+
+  it('a Studio needs no BHK, and nor does a shop', () => {
+    assert.equal(stepBlocker(4, { ...complete, propertyTypeName: 'Studio Apartment', bhkType: '' }, 1), null);
+    assert.equal(
+      stepBlocker(4, { ...complete, categoryName: 'Commercial', propertyTypeName: 'Shop / Retail', bhkType: '' }, 1),
+      null
+    );
+  });
+
+  it('a price with no built-up area cannot leave Price & area', () => {
+    assert.equal(stepBlocker(3, { ...complete, builtUpSqft: '' }, 1), 'Enter the built-up area.');
+    assert.equal(stepBlocker(3, { ...complete, builtUpSqft: '0' }, 1), 'Enter the built-up area.');
+  });
+
+  it('Review sends the owner to the first step still missing something', () => {
+    assert.equal(firstBlockedStep(complete, 1), null);
+    assert.deepEqual(firstBlockedStep(complete, 0), { step: PHOTOS_STEP, reason: 'Add at least one photo to continue.' });
+    assert.equal(firstBlockedStep({ ...complete, builtUpSqft: '' }, 0)?.step, 3);
+  });
+});
+
+describe('filing a new photo', () => {
+  it('the first photo is filed as the outside of the type, the second as Other', () => {
+    assert.equal(defaultPhotoCategory('Residential', 'Villa', 0), 'exterior');
+    assert.equal(defaultPhotoCategory('Commercial', 'Office Space', 0), 'facade');
+    assert.equal(defaultPhotoCategory('Residential', 'Villa', 1), 'other');
+  });
+
+  it('an unknown type falls back to its category set, still the outside first', () => {
+    assert.equal(defaultPhotoCategory('Residential', 'Treehouse', 0), 'exterior');
+  });
+});
+
+describe('money typed with commas', () => {
+  it('a deposit and booking amount typed with commas are sent as digits', () => {
+    assert.equal(fieldsOf({ listingType: 'Rent', deposit: '50,000' }).deposit, '50000');
+    assert.equal(fieldsOf({ listingType: 'Sale', bookingAmount: '1,00,000' }).bookingAmount, '100000');
   });
 });

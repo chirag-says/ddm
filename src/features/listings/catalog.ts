@@ -427,6 +427,28 @@ export function photoCategoriesForType(
 }
 
 /**
+ * The room a newly added photo is filed under.
+ *
+ * The website will not let an owner past its photo step without one photo of
+ * the outside ("exterior" for homes, "facade" for commercial). Mobile filed
+ * every new photo as "Other", so its listings never met that bar. The FIRST
+ * photo of a listing now starts as the outside, the photo most owners take
+ * first and the one cards use as the cover; later photos start as "Other".
+ * Either can be retagged. A type with no outside category keeps "Other".
+ */
+export function defaultPhotoCategory(
+  category: ListingCategory,
+  propertyType: string,
+  photosSoFar: number
+): string {
+  if (photosSoFar > 0) return 'other';
+  const outside = photoCategoriesForType(category, propertyType).find(
+    (c) => c.key === 'exterior' || c.key === 'facade'
+  );
+  return outside?.key ?? 'other';
+}
+
+/**
  * Which bucket a categorised photo is filed under on the server.
  *
  * `Commercial` is the special case and everything else is residential-shaped,

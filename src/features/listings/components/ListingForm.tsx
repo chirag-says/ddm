@@ -29,12 +29,21 @@ import {
   PROPERTY_AGE_OPTIONS,
   TENANT_OPTIONS,
   amenitiesFor,
+  defaultPhotoCategory,
   photoCategoriesForType,
 } from '../catalog';
 import { PriceGuidanceLine } from '@/features/locality';
 import { LocationPicker } from './LocationPicker';
 import { useListingTaxonomy } from '../taxonomy';
-import { reconcileType, selectCategory } from '../listingFields';
+import {
+  firstBlockedStep,
+  LISTING_STEPS,
+  PHOTOS_STEP,
+  reconcileType,
+  selectCategory,
+  stepBlocker,
+  TITLE_MIN,
+} from '../listingFields';
 import {
   photoCategoryLabel,
   type CategorizedPhoto,
@@ -44,7 +53,6 @@ import {
 const MAX_PHOTOS = 15;
 
 /** Server limits (`validators/index.js`): title 5–200, description ≤ 5000. */
-const TITLE_MIN = 5;
 const TITLE_MAX = 200;
 const DESCRIPTION_MAX = 5000;
 
@@ -84,40 +92,6 @@ function ratePerSqft(values: ListingFormValues): number | undefined {
   return Math.round(price / area);
 }
 
-/**
- * Why the current step cannot be left yet, in the owner's words, or null.
- *
- * This replaced a bare `disabled` on Next. A button that will not press and
- * does not say why is the single most common reason a form is abandoned: the
- * owner has no way to know whether it is a missing field, a bug, or their
- * network. The reason is shown after the first attempt, and the field it
- * names is outlined, so the fix is one glance away.
- */
-function stepBlocker(step: number, values: ListingFormValues): string | null {
-  switch (step) {
-    case 0:
-      if (!values.categoryName.trim()) return 'Choose a category to continue.';
-      if (!values.propertyTypeName.trim()) return 'Choose a property type to continue.';
-      return null;
-    case 1:
-      if (values.title.trim().length < TITLE_MIN)
-        return `Give the property a title of at least ${TITLE_MIN} characters.`;
-      return null;
-    case 2:
-      if (!values.locality.trim() && !values.city.trim())
-        return 'Enter the locality and city, or use your location to fill them in.';
-      if (!values.locality.trim()) return 'Enter the locality or area.';
-      if (!values.city.trim()) return 'Enter the city.';
-      return null;
-    case 3:
-      if (!values.price.trim())
-        return values.listingType === 'Rent' ? 'Enter the monthly rent.' : 'Enter the price.';
-      return null;
-    default:
-      return null;
-  }
-}
-
 export interface ListingFormProps {
   values: ListingFormValues;
   onChange: (values: ListingFormValues) => void;
@@ -138,7 +112,7 @@ export interface ListingFormProps {
   allStepsReached?: boolean;
 }
 
-const STEP_TITLES = ['Category', 'Basics', 'Location', 'Price & area', 'Details', 'Photos', 'Review'];
+const STEP_TITLES = LISTING_STEPS;
 
 /**
  * The shared multi-step body for both add and edit. What differs between the
@@ -235,8 +209,12 @@ export function ListingForm({
 
   // Both halves of step 0, because the server rejects a type that does not
   // sit under the category submitted alongside it.
-  const blocker = useMemo(() => stepBlocker(step, values), [step, values]);
+  const blocker = useMemo(() => stepBlocker(step, values, totalPhotos), [step, values, totalPhotos]);
   const showErrors = attempted && blocker !== null;
+  // On Review, the first step still missing something. The edit screen can
+  // jump straight to Review, so this is what keeps it from saving a listing
+  // the add flow would have stopped.
+  const reviewBlock = step === STEP_TITLES.length - 1 ? firstBlockedStep(values, totalPhotos) : null;
 
   const goTo = (next: number) => {
     setStep(next);
@@ -267,7 +245,13 @@ export function ListingForm({
       return;
     }
     if (uris.length === 0) return;
-    onChangeNewPhotos([...newPhotos, ...uris.map((uri) => ({ uri, category: 'other' }))]);
+    onChangeNewPhotos([
+      ...newPhotos,
+      ...uris.map((uri, i) => ({
+        uri,
+        category: defaultPhotoCategory(values.categoryName, values.propertyTypeName, totalPhotos + i),
+      })),
+    ]);
   };
 
   /**
@@ -284,7 +268,10 @@ export function ListingForm({
       return;
     }
     if (!uri) return;
-    onChangeNewPhotos([...newPhotos, { uri, category: 'other' }]);
+    onChangeNewPhotos([
+      ...newPhotos,
+      { uri, category: defaultPhotoCategory(values.categoryName, values.propertyTypeName, totalPhotos) },
+    ]);
   };
 
   const applyCategory = (category: string) => {
@@ -335,8 +322,11 @@ export function ListingForm({
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {step === 0 && (
             <Card>
-              <Text variant="bodyEmphasis" className="mb-base">
-                What are you posting?
+              <Text variant="bodyEmphasis">What are you posting?</Text>
+              {/* Said on the first step, so a required photo is not news on the
+                  sixth. */}
+              <Text variant="footnote" tone="secondary" className="mb-base mt-xs">
+                You will need the price, the built-up area and at least one photo.
               </Text>
 
               {/*
@@ -686,8 +676,9 @@ export function ListingForm({
                   <Input
                     label="Security deposit (₹)"
                     value={values.deposit}
-                    onChangeText={(v) => set('deposit', v)}
+                    onChangeText={(v) => set('deposit', digits(v))}
                     keyboardType="number-pad"
+                    hint={values.deposit ? formatPrice(values.deposit) : undefined}
                     containerClassName="mt-base"
                   />
                   <Pressable
@@ -719,8 +710,9 @@ export function ListingForm({
                   <Input
                     label="Booking amount (₹)"
                     value={values.bookingAmount}
-                    onChangeText={(v) => set('bookingAmount', v)}
+                    onChangeText={(v) => set('bookingAmount', digits(v))}
                     keyboardType="number-pad"
+                    hint={values.bookingAmount ? formatPrice(values.bookingAmount) : undefined}
                     containerClassName="mt-base"
                   />
                   <Pressable
@@ -767,10 +759,11 @@ export function ListingForm({
                 ) : null}
                 {areaFields.builtUp ? (
                   <Input
-                    label="Built-up"
+                    label="Built-up *"
                     value={values.builtUpSqft}
                     onChangeText={(v) => set('builtUpSqft', digits(v))}
                     keyboardType="number-pad"
+                    error={showErrors && values.price.trim() && !values.builtUpSqft ? 'Required' : undefined}
                     containerClassName="mb-base w-[47%]"
                   />
                 ) : null}
@@ -827,10 +820,20 @@ export function ListingForm({
               <Card>
                 <StepIntro
                   title="The details"
-                  hint="Everything here is optional. Each answer is one question a buyer will not have to message you about."
+                  hint={
+                    values.categoryName === 'Residential'
+                      ? 'Only the BHK is required. Each other answer is one question a buyer will not have to message you about.'
+                      : 'Everything here is optional. Each answer is one question a buyer will not have to message you about.'
+                  }
                 />
                 {values.categoryName === 'Residential' ? (
-                  <ResidentialDetails values={values} set={set} patch={patch} theme={theme} />
+                  <ResidentialDetails
+                    values={values}
+                    set={set}
+                    patch={patch}
+                    theme={theme}
+                    bhkError={showErrors ? blocker ?? undefined : undefined}
+                  />
                 ) : (
                   <CommercialDetails values={values} set={set} />
                 )}
@@ -971,8 +974,9 @@ export function ListingForm({
                 ) : null}
               </View>
               {totalPhotos === 0 ? (
-                <Text variant="footnote" tone="secondary">
-                  Properties with photos get far more interest. Add at least a few.
+                <Text variant="footnote" tone={showErrors ? 'danger' : 'secondary'}>
+                  At least one photo is required. The first one is used as the outside view; tap its label to
+                  change that.
                 </Text>
               ) : null}
             </Card>
@@ -1059,24 +1063,29 @@ export function ListingForm({
                 onEdit={() => goTo(5)}
               />
 
-              {totalPhotos === 0 ? (
-                <Text variant="footnote" tone="danger" className="mt-sm">
-                  No photos yet. Properties without one get a fraction of the enquiries.
-                </Text>
-              ) : null}
-
               {submitError ? (
                 <Text variant="footnote" tone="danger" className="mt-base">
                   {submitError}
                 </Text>
               ) : null}
 
-              <Button
-                label={submitLabel}
-                className="mt-lg"
-                loading={isSubmitting}
-                onPress={onSubmit}
-              />
+              {/* Nothing is sent while a step is still missing something: the
+                  reason, and a way straight to the step that needs it, stand
+                  in for the submit button. `onSubmit` is never reached with
+                  no photo. */}
+              {reviewBlock ? (
+                <View className="mt-lg">
+                  <Text variant="footnote" tone="danger" className="mb-sm">
+                    {reviewBlock.reason}
+                  </Text>
+                  <Button
+                    label={reviewBlock.step === PHOTOS_STEP ? 'Add photos' : `Go to ${STEP_TITLES[reviewBlock.step]}`}
+                    onPress={() => goTo(reviewBlock.step)}
+                  />
+                </View>
+              ) : (
+                <Button label={submitLabel} className="mt-lg" loading={isSubmitting} onPress={onSubmit} />
+              )}
             </Card>
           )}
         </ScrollView>
@@ -1124,6 +1133,7 @@ function ResidentialDetails({
   set,
   patch,
   theme,
+  bhkError,
 }: {
   values: ListingFormValues;
   set: <K extends keyof ListingFormValues>(key: K, value: ListingFormValues[K]) => void;
@@ -1136,6 +1146,8 @@ function ResidentialDetails({
    */
   patch: (next: Partial<ListingFormValues>) => void;
   theme: Theme;
+  /** The step's blocker, shown on the BHK field: it is the only required one. */
+  bhkError?: string;
 }) {
   /*
     The website's seven options, not five.
@@ -1157,10 +1169,11 @@ function ResidentialDetails({
   return (
     <>
       <Select
-        label="BHK"
+        label="BHK *"
         placeholder="Choose"
         value={values.bhkType || undefined}
         options={bhkOptions}
+        error={bhkError}
         onChange={(v) => {
           /*
             Picking a BHK also fills the bedroom count, exactly as the website

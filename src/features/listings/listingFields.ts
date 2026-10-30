@@ -43,6 +43,77 @@ export function selectCategory(
   };
 }
 
+/** The step indexes of the wizard, in order. Photos is the 6th step. */
+export const LISTING_STEPS = ['Category', 'Basics', 'Location', 'Price & area', 'Details', 'Photos', 'Review'] as const;
+export const PHOTOS_STEP = 5;
+
+/** Server limits (`validators/index.js`): title 5–200. */
+export const TITLE_MIN = 5;
+
+/** A Studio has no BHK to choose, on the website and here. */
+function isStudio(values: Pick<ListingFormValues, 'propertyTypeName' | 'bhkType'>): boolean {
+  return /studio/i.test(values.propertyTypeName) || values.bhkType === 'Studio';
+}
+
+function hasPositive(value: string): boolean {
+  const n = Number(value.replace(/[^\d.]/g, ''));
+  return Number.isFinite(n) && n > 0;
+}
+
+/**
+ * Why a step cannot be left yet, in the owner's words, or null.
+ *
+ * Shown in the footer after the first Next press, and on Review for the first
+ * step still blocked, so a listing never reaches the server missing what the
+ * website requires: a category and type, the locality and city, a price, a
+ * built-up area (2026-10-30, website parity), a BHK for homes other than
+ * studios (same), and at least one photo (same).
+ */
+export function stepBlocker(step: number, values: ListingFormValues, photoCount: number): string | null {
+  switch (step) {
+    case 0:
+      if (!values.categoryName.trim()) return 'Choose a category to continue.';
+      if (!values.propertyTypeName.trim()) return 'Choose a property type to continue.';
+      return null;
+    case 1:
+      if (values.title.trim().length < TITLE_MIN)
+        return `Give the property a title of at least ${TITLE_MIN} characters.`;
+      return null;
+    case 2:
+      if (!values.locality.trim() && !values.city.trim())
+        return 'Enter the locality and city, or use your location to fill them in.';
+      if (!values.locality.trim()) return 'Enter the locality or area.';
+      if (!values.city.trim()) return 'Enter the city.';
+      return null;
+    case 3:
+      if (!values.price.trim())
+        return values.listingType === 'Rent' ? 'Enter the monthly rent.' : 'Enter the price.';
+      if (!hasPositive(values.builtUpSqft)) return 'Enter the built-up area.';
+      return null;
+    case 4:
+      if (values.categoryName === 'Residential' && !values.bhkType && !isStudio(values))
+        return 'Choose the BHK to continue.';
+      return null;
+    case PHOTOS_STEP:
+      if (photoCount < 1) return 'Add at least one photo to continue.';
+      return null;
+    default:
+      return null;
+  }
+}
+
+/** The first step that is still blocked, for Review to send the owner back to. */
+export function firstBlockedStep(
+  values: ListingFormValues,
+  photoCount: number
+): { step: number; reason: string } | null {
+  for (let step = 0; step < LISTING_STEPS.length - 1; step += 1) {
+    const reason = stepBlocker(step, values, photoCount);
+    if (reason) return { step, reason };
+  }
+  return null;
+}
+
 /**
  * Keeps a SEEDED type valid for its category: the Edit screen's case, where
  * the form defaults the category and the stored type may sit under another.
@@ -95,7 +166,9 @@ export function appendListingFields(form: FieldSink, values: ListingFormValues) 
 
   const price = num(values.price);
   if (price !== undefined) form.append('price', String(price));
-  appendIfPresent(form, 'deposit', values.deposit);
+  // Digits only: "50,000" reached the server with its comma (2026-10-30), and
+  // a draft saved before the form stripped commas can still hold one.
+  appendIfPresent(form, 'deposit', values.deposit.replace(/[^\d]/g, ''));
   const securityDeposit = num(values.securityDeposit);
   if (securityDeposit !== undefined) form.append('securityDeposit', String(securityDeposit));
 
@@ -109,7 +182,7 @@ export function appendListingFields(form: FieldSink, values: ListingFormValues) 
     else appendIfPresent(form, 'maintenance', values.maintenance);
   } else {
     appendIfPresent(form, 'maintenance', values.maintenance);
-    const bookingAmount = num(values.bookingAmount);
+    const bookingAmount = num(values.bookingAmount.replace(/[^\d]/g, ''));
     if (bookingAmount !== undefined) form.append('bookingAmount', String(bookingAmount));
     form.append('gstApplicable', values.gstApplicable ? 'Yes' : 'No');
   }
