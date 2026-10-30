@@ -1,6 +1,22 @@
 # Add property form: fixes plan (2026-10-30)
 
-Status: agreed scope, not started. Nothing in this file is implemented yet.
+Status: implemented 2026-10-30, all seven phases, one commit each
+(e0a9c61, a066edc, 1c15e91, 03ff191, 5a6f069, c2047ac, 11a40eb). Unit
+tests, typecheck and lint green. Not yet walked through on the phone (it
+was disconnected); the "Proof" list below is still to do.
+
+Where the build differed from this plan:
+- Phase 1 also clears amenities and the commercial configuration on a
+  category switch (each category has its own amenity list), and moved the
+  form's re-filing effect into `reconcileType` so the Edit case is tested.
+- Phase 2 put the step rules (`stepBlocker`, `firstBlockedStep`) in
+  `listingFields.ts` so they are tested; Review blocks on the first step
+  still missing anything, not only photos.
+- Phase 3: Property age (4 options) is chips; BHK (7) is a dropdown.
+- Phase 7 needed no rebuild: `expo-file-system` 19.0.24 was already in the
+  installed build as a dependency of `expo`. The lockfile was edited with
+  npm 10.9.3 in lock-only mode; `npm run relock` re-resolved the whole tree
+  and bumped 112 packages (google-signin among them), so it was not used.
 
 Scope agreed with Chirag on 2026-10-30:
 - The four complaints from testing build 14 (0.3.0).
