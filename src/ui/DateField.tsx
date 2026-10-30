@@ -56,6 +56,13 @@ function toDate(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** `date` moved inside [min, max]; either bound may be absent. */
+export function clampDate(date: Date, min?: Date, max?: Date): Date {
+  if (min && date < min) return min;
+  if (max && date > max) return max;
+  return date;
+}
+
 function toIso(date: Date): string {
   // Local components, not `toISOString`, which would shift the day across a
   // timezone for anyone east or west of UTC — a birth date must not move.
@@ -134,7 +141,12 @@ export function DateField({
 
       {open ? (
         <DateTimePicker
-          value={toDate(value) ?? maximumDate ?? new Date()}
+          // Empty field: open on today, kept inside the allowed range. It used
+          // to open on `maximumDate`, right for a birth date (the latest day
+          // allowed) and wrong for anything in the future: "Available from"
+          // opened in December three years out, a visit on its last bookable
+          // day (2026-10-30).
+          value={toDate(value) ?? clampDate(new Date(), minimumDate, maximumDate ?? new Date())}
           mode="date"
           // Android shows a modal spinner and closes itself on pick; the event
           // fires once, so there is no per-frame churn.
