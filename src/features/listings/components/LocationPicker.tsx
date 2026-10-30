@@ -3,7 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { LeafletMap, mapAvailable } from '@/features/properties';
-import { describeCoordinates, geocodeAddress, getCoordinates, locationAvailable } from '@/native';
+import {
+  describeCoordinates,
+  geocodeAddress,
+  getCoordinates,
+  locationAvailable,
+  requestLocationPermission,
+} from '@/native';
 import { radius, spacing, useTheme } from '@/theme';
 import { PressableScale, Text, useToast } from '@/ui';
 
@@ -152,36 +158,66 @@ export function LocationPicker({
   /*
     Follow the typed address, but never fight the owner.
 
-    `pinnedRef` is read rather than `pinned` so this effect does not re-run when
-    the pin changes — it must depend on the ADDRESS only. Once a pin exists the
-    geocoder stops moving it: a coordinate the owner placed deliberately
-    outranks one inferred from a locality name, and silently relocating their
-    pin while they edit a landmark is the worst thing this could do.
+    The geocoder may move a pin it placed itself, and nothing else. A pin from
+    a map tap, "Use my location", typed coordinates or a resumed draft is the
+    owner's, and silently relocating it while they edit a landmark is the worst
+    thing this could do. It used to stop at ANY pin, so a pin placed from a
+    half-typed locality then ignored the city typed after it (2026-10-30).
+    `autoPinRef` holds the coordinates this effect last wrote; a pin equal to
+    them is still the geocoder's.
+
+    Refs rather than props in the effect, so it depends on the ADDRESS only.
   */
-  const pinnedRef = useRef(pinned);
-  pinnedRef.current = pinned;
+  const autoPinRef = useRef<string | null>(null);
+  const ownPinRef = useRef(false);
+  ownPinRef.current = pinned && `${latitude},${longitude}` !== autoPinRef.current;
+  const isAutoPin = pinned && !ownPinRef.current;
+
+  // Android geocodes only with location permission. Asked for in context,
+  // from the line under the map, never as a dialog that interrupts typing.
+  const [needsPermission, setNeedsPermission] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    if (pinnedRef.current) return;
+    if (ownPinRef.current) return;
     if (addressQuery.trim().length < 3) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       const found = await geocodeAddress(addressQuery);
+      if (cancelled) return;
+      setNeedsPermission(found.status === 'denied');
       // Re-checked after the await: the owner may have tapped the map while the
       // lookup was in flight, and their tap wins.
-      if (cancelled || pinnedRef.current || found.status !== 'ok') return;
-      onChange({
+      if (ownPinRef.current || found.status !== 'ok') return;
+      const next = {
         latitude: toFixed6(found.coordinates.latitude),
         longitude: toFixed6(found.coordinates.longitude),
-      });
+      };
+      autoPinRef.current = `${next.latitude},${next.longitude}`;
+      onChange(next);
     }, GEOCODE_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [addressQuery, onChange]);
+  }, [addressQuery, onChange, retry]);
+
+  const allowLocation = useCallback(async () => {
+    const result = await requestLocationPermission();
+    if (result.granted) {
+      setNeedsPermission(false);
+      setRetry((n) => n + 1);
+      return;
+    }
+    toast.show(
+      result.canAskAgain
+        ? 'The map cannot follow the address without location access. Tap the map instead.'
+        : 'Location access is off for DealDirect. Turn it on in Settings, or tap the map.',
+      'neutral'
+    );
+  }, [toast]);
 
   return (
     <View>
@@ -235,7 +271,9 @@ export function LocationPicker({
           mode="search"
           pinDrop
           pin={pin}
-          center={pin ? { ...pin, zoom: 16 } : INDIA_CENTRE}
+          // A pin from a typed city or locality is approximate, so the map
+          // shows the area around it rather than one street.
+          center={pin ? { ...pin, zoom: isAutoPin ? 13 : 16 } : INDIA_CENTRE}
           onMapPress={handleMapPress}
           fallback={
             <View
@@ -252,10 +290,27 @@ export function LocationPicker({
         />
       </View>
 
-      {pinned ? (
+      {needsPermission && !pinned ? (
         <View className="mt-sm flex-row items-center justify-between">
-          <Text variant="footnote" tone="secondary">
-            Pinned at {lat.toFixed(4)}, {lng.toFixed(4)}
+          <Text variant="footnote" tone="secondary" className="flex-1 pr-sm">
+            Allow location access and the map will follow the address you type.
+          </Text>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Allow location access"
+            onPress={() => void allowLocation()}
+          >
+            <Text variant="footnote" tone="accent" style={{ fontWeight: '600' }}>
+              Allow
+            </Text>
+          </PressableScale>
+        </View>
+      ) : pinned ? (
+        <View className="mt-sm flex-row items-center justify-between">
+          {/* flex-1 so a two-line note wraps beside Clear instead of pushing
+              it off the card. */}
+          <Text variant="footnote" tone="secondary" className="flex-1 pr-sm">
+            {isAutoPin ? 'Pinned from the address. Tap the map to place it exactly.' : `Pinned at ${lat.toFixed(4)}, ${lng.toFixed(4)}`}
           </Text>
           <PressableScale
             accessibilityRole="button"

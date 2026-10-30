@@ -22,6 +22,7 @@ export {
   getCurrentCity,
   hasLocationPermission,
   locationAvailable,
+  requestLocationPermission,
   type Coordinates,
   type CityResult,
   type GeocodeResult,

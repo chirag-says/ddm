@@ -212,8 +212,24 @@ export async function describeCoordinates(
   }
 }
 
+/**
+ * Ask for foreground location, for a feature the user has just reached for.
+ * `canAskAgain` false means Android will not show the dialog again and only
+ * Settings can change it.
+ */
+export async function requestLocationPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+  if (!Location) return { granted: false, canAskAgain: false };
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    return { granted: permission.granted, canAskAgain: permission.canAskAgain };
+  } catch {
+    return { granted: false, canAskAgain: false };
+  }
+}
+
 export type GeocodeResult =
   | { status: 'ok'; coordinates: Coordinates }
+  | { status: 'denied' }
   | { status: 'unavailable' }
   | { status: 'notFound' }
   | { status: 'error' };
@@ -228,10 +244,18 @@ export type GeocodeResult =
  * `notFound` is distinct from `error`: an address the geocoder cannot place is
  * a normal outcome for a half-typed locality, and must not be reported to the
  * owner as a failure.
+ *
+ * `denied`: on Android, expo-location refuses to geocode without foreground
+ * location permission (`LocationModule.geocode` throws
+ * LocationUnauthorizedException). That used to come back as a silent `error`,
+ * so for any owner who had not granted location the map never followed what
+ * they typed (reported 2026-10-30). It is checked first, without prompting,
+ * so the caller can ask in context.
  */
 export async function geocodeAddress(query: string): Promise<GeocodeResult> {
   if (!Location) return { status: 'unavailable' };
   if (query.trim().length < 3) return { status: 'notFound' };
+  if (!(await hasLocationPermission())) return { status: 'denied' };
 
   try {
     const [match] = await Location.geocodeAsync(query.trim());
