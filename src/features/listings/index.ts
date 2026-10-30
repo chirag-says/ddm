@@ -7,7 +7,14 @@ export {
   type CloseDealValues,
 } from './hooks';
 export { pickListingImages, captureListingImage, canCapture, imagePart } from './imagePicker';
-export { loadListingDraft, saveListingDraft, clearListingDraft, hasListingDraft } from './draft';
+export {
+  loadListingDraft,
+  loadListingDraftPhotos,
+  saveListingDraft,
+  saveListingDraftPhotos,
+  clearListingDraft,
+  hasListingDraft,
+} from './draft';
 export {
   EMPTY_LISTING_FORM,
   AMENITIES,

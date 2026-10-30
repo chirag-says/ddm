@@ -11,7 +11,9 @@ import {
   clearListingDraft,
   hasListingDraft,
   loadListingDraft,
+  loadListingDraftPhotos,
   saveListingDraft,
+  saveListingDraftPhotos,
   useAddListing,
   type CategorizedPhoto,
 } from '@/features/listings';
@@ -58,19 +60,27 @@ function NewPropertyScreenContent() {
     if (!userId || draftOffered.current) return;
     draftOffered.current = true;
     if (!hasListingDraft(userId)) return;
-    Alert.alert(
-      'Resume draft?',
-      'You have an unfinished property post. Continue where you left off? Photos need to be added again.',
-      [
-        { text: 'Start over', style: 'destructive', onPress: () => clearListingDraft() },
-        { text: 'Resume', onPress: () => setValues(loadListingDraft(userId)) },
-      ]
-    );
+    Alert.alert('Resume draft?', 'You have an unfinished property post. Continue where you left off?', [
+      { text: 'Start over', style: 'destructive', onPress: () => clearListingDraft() },
+      {
+        text: 'Resume',
+        onPress: () => {
+          setValues(loadListingDraft(userId));
+          setNewPhotos(loadListingDraftPhotos(userId));
+        },
+      },
+    ]);
   }, [userId]);
 
   const handleChange = (next: typeof values) => {
     setValues(next);
     saveListingDraft(next, userId);
+  };
+
+  // Photos are drafted too: copied into the app's own folder so a resumed
+  // draft brings them back. See `saveListingDraftPhotos`.
+  const handlePhotosChange = (next: CategorizedPhoto[]) => {
+    setNewPhotos(saveListingDraftPhotos(next, values, userId));
   };
 
   /**
@@ -158,7 +168,7 @@ function NewPropertyScreenContent() {
         existingPhotos={[]}
         onChangeExistingPhotos={() => {}}
         newPhotos={newPhotos}
-        onChangeNewPhotos={setNewPhotos}
+        onChangeNewPhotos={handlePhotosChange}
         onSubmit={() => void handleSubmit()}
         submitLabel="Post property"
         isSubmitting={isPending}
