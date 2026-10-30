@@ -13,6 +13,58 @@ export interface FieldSink {
   append(key: string, value: string): void;
 }
 
+/**
+ * What tapping a category chip does to the form.
+ *
+ * The type and commercial sub-type belong to a category, so they go in the
+ * same write as the category. Written separately, the form's effect that
+ * re-files an Edit screen's type under its real category saw "Villa" under
+ * Commercial and switched the category straight back, so an owner could not
+ * leave Residential once a type was chosen (reported 2026-10-30). Tapping
+ * the chosen category again clears it.
+ *
+ * Amenities and the commercial configuration go too: each category has its
+ * own amenity list, so a Swimming Pool ticked under Residential would
+ * otherwise be sent with an office.
+ */
+export function selectCategory(
+  values: ListingFormValues,
+  name: string
+): Pick<
+  ListingFormValues,
+  'categoryName' | 'propertyTypeName' | 'commercialSubType' | 'amenities' | 'commercialConfig'
+> {
+  return {
+    categoryName: values.categoryName === name ? '' : name,
+    propertyTypeName: '',
+    commercialSubType: '',
+    amenities: [],
+    commercialConfig: {},
+  };
+}
+
+/**
+ * Keeps a SEEDED type valid for its category: the Edit screen's case, where
+ * the form defaults the category and the stored type may sit under another.
+ * Moving the category to match preserves the owner's data; clearing it
+ * destroys it. Only a type the server does not know at all is cleared.
+ * Returns the fields to change, or null when nothing should.
+ *
+ * Taps never reach the "move" branch any more: `selectCategory` clears the
+ * type in the same write as the category.
+ */
+export function reconcileType(
+  values: Pick<ListingFormValues, 'categoryName' | 'propertyTypeName'>,
+  categories: readonly { name: string; types: readonly string[] }[]
+): Partial<ListingFormValues> | null {
+  if (categories.length === 0 || !values.propertyTypeName) return null;
+  const active = categories.find((c) => c.name === values.categoryName);
+  if (active?.types.includes(values.propertyTypeName)) return null;
+  const owner = categories.find((c) => c.types.includes(values.propertyTypeName));
+  if (owner) return owner.name === values.categoryName ? null : { categoryName: owner.name };
+  return { propertyTypeName: '' };
+}
+
 export function appendIfPresent(form: FieldSink, key: string, value: string | undefined) {
   if (value !== undefined && value.trim() !== '') form.append(key, value.trim());
 }

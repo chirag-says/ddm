@@ -34,6 +34,7 @@ import {
 import { PriceGuidanceLine } from '@/features/locality';
 import { LocationPicker } from './LocationPicker';
 import { useListingTaxonomy } from '../taxonomy';
+import { reconcileType, selectCategory } from '../listingFields';
 import {
   photoCategoryLabel,
   type CategorizedPhoto,
@@ -212,25 +213,12 @@ export function ListingForm({
     value is judged against the server's answer or not at all.
   */
   useEffect(() => {
-    if (taxonomy.isLoading || taxonomy.categories.length === 0) return;
-    if (!values.propertyTypeName) return;
-    if (activeCategory?.types.includes(values.propertyTypeName)) return;
-
-    /*
-      Before clearing, see whether the type is simply filed under a different
-      category than the form currently shows — which is the normal case when
-      editing a listing whose category the form defaulted. Moving the category
-      to match preserves the owner's data; clearing it destroys it.
-    */
-    const owner = taxonomy.categories.find((c) => c.types.includes(values.propertyTypeName));
-    if (owner) {
-      if (owner.name !== values.categoryName) set('categoryName', owner.name);
-      return;
-    }
-
-    set('propertyTypeName', '');
+    if (taxonomy.isLoading) return;
+    // See `reconcileType`: moves a seeded type's category, never undoes a tap.
+    const fix = reconcileType(values, taxonomy.categories);
+    if (fix) patch(fix);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.categoryName, values.propertyTypeName, taxonomy.isLoading, taxonomy.categories, activeCategory]);
+  }, [values.categoryName, values.propertyTypeName, taxonomy.isLoading, taxonomy.categories]);
 
   const totalPhotos = existingPhotos.length + newPhotos.length;
   const canAddMorePhotos = totalPhotos < MAX_PHOTOS;
@@ -371,7 +359,9 @@ export function ListingForm({
                         key={c.id}
                         label={c.name}
                         selected={values.categoryName === c.name}
-                        onPress={() => set('categoryName', c.name)}
+                        // Category, type and sub-type in one write; tapping the
+                        // chosen one clears it. See `selectCategory`.
+                        onPress={() => patch(selectCategory(values, c.name))}
                         className="mb-sm mr-sm"
                       />
                     ))}
@@ -379,10 +369,12 @@ export function ListingForm({
 
                   <Select
                     label="Property type"
-                    placeholder="Choose a type"
+                    placeholder={values.categoryName ? 'Choose a type' : 'Choose a category first'}
                     value={values.propertyTypeName || undefined}
                     options={propertyTypeOptions}
                     onChange={(v) => set('propertyTypeName', v)}
+                    onClear={() => set('propertyTypeName', '')}
+                    disabled={!values.categoryName}
                   />
 
                   {/* How finished the space is handed over — the first thing a

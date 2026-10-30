@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { appendListingFields } from './listingFields.ts';
+import { appendListingFields, reconcileType, selectCategory } from './listingFields.ts';
 import { EMPTY_LISTING_FORM, type ListingFormValues } from './types.ts';
 
 /** The fields as the server receives them. Repeated keys would be a bug, so they throw. */
@@ -95,5 +95,44 @@ describe('commercial washrooms', () => {
   it('falls back to the general field when the per-type box is empty', () => {
     const f = commercial('2', { washrooms: '', workstations: '20' });
     assert.equal(f.washrooms, '2');
+  });
+});
+
+const TAXONOMY = [
+  { name: 'Residential', types: ['Apartment / Flat', 'Villa'] },
+  { name: 'Commercial', types: ['Office Space', 'Shop / Retail'] },
+];
+
+describe('choosing a category', () => {
+  const villa: ListingFormValues = {
+    ...EMPTY_LISTING_FORM,
+    categoryName: 'Residential',
+    propertyTypeName: 'Villa',
+    amenities: ['Swimming Pool'],
+  };
+
+  it('switching to Commercial drops the Villa type, sub-type and amenities', () => {
+    const next = { ...villa, ...selectCategory(villa, 'Commercial') };
+    assert.equal(next.categoryName, 'Commercial');
+    assert.equal(next.propertyTypeName, '');
+    assert.deepEqual(next.amenities, []);
+    // And the form's re-filing check leaves the switch alone.
+    assert.equal(reconcileType(next, TAXONOMY), null);
+  });
+
+  it('tapping the chosen category again clears it', () => {
+    const next = { ...villa, ...selectCategory(villa, 'Residential') };
+    assert.equal(next.categoryName, '');
+    assert.equal(next.propertyTypeName, '');
+  });
+
+  it('an Edit screen seeded with Villa under the wrong category is moved, not wiped', () => {
+    const seeded = { categoryName: 'Commercial', propertyTypeName: 'Villa' };
+    assert.deepEqual(reconcileType(seeded, TAXONOMY), { categoryName: 'Residential' });
+  });
+
+  it('a type the server does not know is cleared', () => {
+    const seeded = { categoryName: 'Residential', propertyTypeName: 'Castle' };
+    assert.deepEqual(reconcileType(seeded, TAXONOMY), { propertyTypeName: '' });
   });
 });

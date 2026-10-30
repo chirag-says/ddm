@@ -26,6 +26,12 @@ export interface SelectProps<T extends string> {
   onChange: (value: T) => void;
   error?: string;
   disabled?: boolean;
+  /**
+   * Offers a "Clear" row at the top of the sheet while something is chosen.
+   * Without it, an optional field once set could never go back to "not
+   * stated".
+   */
+  onClear?: () => void;
 }
 
 export function Select<T extends string>({
@@ -36,6 +42,7 @@ export function Select<T extends string>({
   onChange,
   error,
   disabled = false,
+  onClear,
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
@@ -79,6 +86,21 @@ export function Select<T extends string>({
 
       <Sheet visible={open} onClose={() => setOpen(false)} title={label} heightRatio={0.5}>
         <ScrollView>
+          {onClear && selected ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Clear ${label ?? 'selection'}`}
+              onPress={() => {
+                onClear();
+                setOpen(false);
+              }}
+              className="flex-row items-center border-b border-border py-base"
+            >
+              <Text variant="body" tone="danger">
+                Clear
+              </Text>
+            </Pressable>
+          ) : null}
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
