@@ -29,7 +29,7 @@ import {
   FURNISHING_OPTIONS,
   PROPERTY_AGE_OPTIONS,
   TENANT_OPTIONS,
-  amenitiesFor,
+  amenityGroupsFor,
   defaultPhotoCategory,
   photoCategoriesForType,
 } from '../catalog';
@@ -898,27 +898,37 @@ export function ListingForm({
               </Card>
 
               <Card className="mt-base">
-                <Text variant="bodyEmphasis" className="mb-base">
-                  Amenities
+                <Text variant="bodyEmphasis">Amenities</Text>
+                <Text variant="caption" tone="muted" className="mb-sm">
+                  Tick everything the property has.
                 </Text>
-                <View className="flex-row flex-wrap">
-                  {amenitiesFor(values.categoryName).map((amenity) => (
-                    <Chip
-                      key={amenity}
-                      label={amenity}
-                      selected={values.amenities.includes(amenity)}
-                      onPress={() =>
-                        set(
-                          'amenities',
-                          values.amenities.includes(amenity)
-                            ? values.amenities.filter((a) => a !== amenity)
-                            : [...values.amenities, amenity]
-                        )
-                      }
-                      className="mb-sm mr-sm"
-                    />
-                  ))}
-                </View>
+                {/* Under headings, so an owner looks for the gym under Leisure
+                    rather than scanning twenty-two chips. See `amenityGroupsFor`. */}
+                {amenityGroupsFor(values.categoryName).map((group) => (
+                  <View key={group.title} className="mt-sm">
+                    <Text variant="footnote" tone="secondary" className="mb-xs">
+                      {group.title}
+                    </Text>
+                    <View className="flex-row flex-wrap">
+                      {group.items.map((amenity) => (
+                        <Chip
+                          key={amenity}
+                          label={amenity}
+                          selected={values.amenities.includes(amenity)}
+                          onPress={() =>
+                            set(
+                              'amenities',
+                              values.amenities.includes(amenity)
+                                ? values.amenities.filter((a) => a !== amenity)
+                                : [...values.amenities, amenity]
+                            )
+                          }
+                          className="mb-sm mr-sm"
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))}
               </Card>
             </>
           )}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { defaultPhotoCategory } from './catalog.ts';
+import { amenitiesFor, amenityGroupsFor, defaultPhotoCategory } from './catalog.ts';
 import {
   appendListingFields,
   firstBlockedStep,
@@ -216,6 +216,21 @@ describe('the suggested title', () => {
   it('an empty title passes step 2, a too-short typed one does not', () => {
     assert.equal(stepBlocker(1, { ...base, title: '' }, 0), null);
     assert.match(stepBlocker(1, { ...base, title: 'Flat' }, 0) ?? '', /at least 5 characters/);
+  });
+});
+
+describe('amenities under headings', () => {
+  for (const category of ['Residential', 'Commercial']) {
+    it(`every ${category} amenity has a heading, none lands under Other`, () => {
+      const groups = amenityGroupsFor(category);
+      assert.equal(groups.some((g) => g.title === 'Other'), false);
+      assert.deepEqual(groups.flatMap((g) => g.items).sort(), [...amenitiesFor(category)].sort());
+    });
+  }
+
+  it('keeps the list order inside each heading', () => {
+    const building = amenityGroupsFor('Residential').find((g) => g.title === 'In the building');
+    assert.deepEqual(building?.items.slice(0, 3), ['Lift', 'Power Backup', 'CCTV']);
   });
 });
 

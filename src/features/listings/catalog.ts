@@ -122,6 +122,80 @@ export function amenitiesFor(category: ListingCategory): readonly string[] {
 }
 
 /**
+ * Which heading each amenity sits under in the form (2026-10-30).
+ *
+ * Twenty-two residential chips in one block were read as a wall; under three
+ * headings an owner scans for "is there a gym" in the right place. Display
+ * only: the values sent to the server are unchanged.
+ *
+ * "Store Room" and "Servant Room" are also the Details step's Extra rooms
+ * toggles. Both stay for website parity; dropping them from this list is a
+ * change to make on both clients together.
+ */
+const AMENITY_GROUP: Readonly<Record<string, string>> = {
+  // Residential
+  Lift: 'In the building',
+  'Power Backup': 'In the building',
+  CCTV: 'In the building',
+  Intercom: 'In the building',
+  'Parking Covered': 'In the building',
+  'Parking Open': 'In the building',
+  'Modular Kitchen': 'Inside the home',
+  Wardrobes: 'Inside the home',
+  Geyser: 'Inside the home',
+  AC: 'Inside the home',
+  Fans: 'Inside the home',
+  'Water Purifier': 'Inside the home',
+  'RO Water': 'Inside the home',
+  'Store Room': 'Inside the home',
+  'Servant Room': 'Inside the home',
+  Gym: 'Leisure',
+  'Swimming Pool': 'Leisure',
+  'Club House': 'Leisure',
+  'Community Hall': 'Leisure',
+  Garden: 'Leisure',
+  'Jogging Track': 'Leisure',
+  'Kids Play Area': 'Leisure',
+};
+
+const COMMERCIAL_AMENITY_GROUP: Readonly<Record<string, string>> = {
+  Lift: 'Building',
+  'Goods Lift': 'Building',
+  'Power Backup': 'Building',
+  'Water Storage': 'Building',
+  Washrooms: 'Building',
+  AC: 'Building',
+  Internet: 'Building',
+  'Reserved Parking': 'Parking and access',
+  'Visitor Parking': 'Parking and access',
+  'Loading Dock': 'Parking and access',
+  CCTV: 'Safety',
+  'Fire Safety': 'Safety',
+  'Sprinkler System': 'Safety',
+  Security: 'Safety',
+};
+
+/**
+ * The category's amenities under their headings, headings in the order they
+ * first appear and items in list order. Anything without a heading lands
+ * under "Other", so a list change can never hide an amenity.
+ */
+export function amenityGroupsFor(category: ListingCategory): { title: string; items: string[] }[] {
+  const groupOf = category === 'Commercial' ? COMMERCIAL_AMENITY_GROUP : AMENITY_GROUP;
+  const groups: { title: string; items: string[] }[] = [];
+  for (const amenity of amenitiesFor(category)) {
+    const title = groupOf[amenity] ?? 'Other';
+    let group = groups.find((g) => g.title === title);
+    if (!group) {
+      group = { title, items: [] };
+      groups.push(group);
+    }
+    group.items.push(amenity);
+  }
+  return groups;
+}
+
+/**
  * Per-property-type numeric configuration, Commercial only.
  *
  * Keys are submitted flat inside `features`, exactly as spelled. Labels are
