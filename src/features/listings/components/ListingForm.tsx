@@ -1028,6 +1028,11 @@ export function ListingForm({
               />
               <ReviewRow label="Title" value={values.title} onEdit={() => goTo(1)} />
               <ReviewRow
+                label="Description"
+                value={values.description.trim().split('\n')[0] ?? ''}
+                onEdit={() => goTo(1)}
+              />
+              <ReviewRow
                 label="Location"
                 value={[values.locality, values.city].filter(Boolean).join(', ')}
                 onEdit={() => goTo(2)}
@@ -1056,20 +1061,65 @@ export function ListingForm({
                   .join(', ')}
                 onEdit={() => goTo(3)}
               />
+              {/* Everything that goes live is shown before it does (2026-10-30):
+                  the money beside the price, then the details. */}
+              <ReviewRow
+                label={values.listingType === 'Rent' ? 'Deposit' : 'Booking'}
+                value={
+                  values.listingType === 'Rent'
+                    ? values.deposit && formatPrice(values.deposit)
+                    : values.bookingAmount && formatPrice(values.bookingAmount)
+                }
+                onEdit={() => goTo(3)}
+              />
+              <ReviewRow
+                label="Available"
+                value={values.availableFrom || 'Now'}
+                onEdit={() => goTo(3)}
+              />
               {values.categoryName === 'Residential' ? (
-                <ReviewRow
-                  label="Home"
-                  value={[
-                    values.bhkType,
-                    values.furnishing,
-                    // "New", not "New old"; the ranges read as ages ("1-5 Years old").
-                    values.propertyAge === 'New' ? 'New' : values.propertyAge && `${values.propertyAge} old`,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  onEdit={() => goTo(4)}
-                />
+                <>
+                  <ReviewRow
+                    label="Home"
+                    value={[
+                      values.bhkType,
+                      values.furnishing,
+                      // "New", not "New old"; the ranges read as ages ("1-5 Years old").
+                      values.propertyAge === 'New' ? 'New' : values.propertyAge && `${values.propertyAge} old`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    onEdit={() => goTo(4)}
+                  />
+                  <ReviewRow
+                    label="Floor"
+                    value={
+                      values.floorNo
+                        ? `${values.floorNo}${values.totalFloors ? ` of ${values.totalFloors}` : ''}`
+                        : values.totalFloors && `${values.totalFloors} floors in the building`
+                    }
+                    onEdit={() => goTo(4)}
+                  />
+                  <ReviewRow label="Facing" value={values.facing} onEdit={() => goTo(4)} />
+                  <ReviewRow
+                    label="Extra rooms"
+                    value={[
+                      values.servantRoom && 'Servant',
+                      values.poojaRoom && 'Pooja',
+                      values.studyRoom && 'Study',
+                      values.storeRoom && 'Store',
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                    onEdit={() => goTo(4)}
+                  />
+                </>
               ) : null}
+              <ReviewRow
+                label="Amenities"
+                value={values.amenities.length > 0 ? `${values.amenities.length} chosen` : ''}
+                onEdit={() => goTo(4)}
+              />
               <ReviewRow
                 label="Photos"
                 value={totalPhotos > 0 ? `${totalPhotos} added` : ''}
