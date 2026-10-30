@@ -79,9 +79,12 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
    * state. Those are the most-seen screens in the app for a signed-out user,
    * and all of them looked broken.
    *
-   * `self-start` is still the default, because a button with no alignment at
-   * all inherits RN's `alignItems: 'stretch'` and grows to fill its row, which
-   * is worse. But it is a default now, not a decree.
+   * The default is `center` since 2026-10-30 (it was `self-start`): left-
+   * hugging buttons under full-width content read as misaligned, e.g. the
+   * Review step's "Post property" sat left under a full-width list. Some
+   * alignment is still set, because a button with none inherits RN's
+   * `alignItems: 'stretch'` and grows to fill its row. Pass `align="start"`
+   * where a button belongs at the leading edge, or `fullWidth`.
    */
   align?: 'start' | 'center' | 'end' | 'stretch';
   /** Rendered before the label. */
@@ -180,7 +183,7 @@ export function Button({
         'flex-row items-center justify-center',
         containerVariant[variant],
         sizeClass[size],
-        alignClass[align ?? (fullWidth ? 'stretch' : 'start')],
+        alignClass[align ?? (fullWidth ? 'stretch' : 'center')],
         className,
       ].join(' ')}
       {...rest}
