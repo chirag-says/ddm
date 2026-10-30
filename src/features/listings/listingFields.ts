@@ -76,8 +76,11 @@ export function stepBlocker(step: number, values: ListingFormValues, photoCount:
       if (!values.propertyTypeName.trim()) return 'Choose a property type to continue.';
       return null;
     case 1:
-      if (values.title.trim().length < TITLE_MIN)
-        return `Give the property a title of at least ${TITLE_MIN} characters.`;
+      // Optional since 2026-10-30: an empty title is filled from the details
+      // on the way into Review (`suggestedTitle`). A typed one keeps the
+      // server's minimum.
+      if (values.title.trim() && values.title.trim().length < TITLE_MIN)
+        return `Give the property a title of at least ${TITLE_MIN} characters, or leave it empty for a suggestion.`;
       return null;
     case 2:
       if (!values.locality.trim() && !values.city.trim())
@@ -100,6 +103,29 @@ export function stepBlocker(step: number, values: ListingFormValues, photoCount:
     default:
       return null;
   }
+}
+
+/**
+ * A title made from what the owner has already chosen, e.g.
+ * "3 BHK Apartment for sale in Whitefield".
+ *
+ * The title was the field owners struggled with most, asked on step 2 before
+ * the form knew the BHK or the locality. It stays on step 2 (steps do not
+ * move) but is optional: step 2 offers this as a tap, and an empty title is
+ * filled with it on the way into Review. "Apartment / Flat" reads as
+ * "Apartment"; a type that already names its size is not prefixed with a BHK.
+ */
+export function suggestedTitle(values: ListingFormValues): string {
+  const type = (values.propertyTypeName.split(' / ')[0] ?? '').trim();
+  const bhk =
+    values.categoryName === 'Residential' && values.bhkType && !/studio/i.test(`${values.bhkType} ${type}`)
+      ? values.bhkType
+      : '';
+  const what = [bhk, type].filter(Boolean).join(' ');
+  if (!what) return '';
+  const deal = values.listingType === 'Rent' ? 'for rent' : 'for sale';
+  const where = values.locality.trim() ? `in ${values.locality.trim()}` : '';
+  return [what, deal, where].filter(Boolean).join(' ');
 }
 
 /** The first step that is still blocked, for Review to send the owner back to. */

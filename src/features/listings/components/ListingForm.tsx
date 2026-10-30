@@ -43,7 +43,7 @@ import {
   reconcileType,
   selectCategory,
   stepBlocker,
-  TITLE_MIN,
+  suggestedTitle,
 } from '../listingFields';
 import {
   photoCategoryLabel,
@@ -223,6 +223,12 @@ export function ListingForm({
   const reviewBlock = step === STEP_TITLES.length - 1 ? firstBlockedStep(values, totalPhotos) : null;
 
   const goTo = (next: number) => {
+    // An empty title is filled from the details on the way into Review,
+    // where it shows as an editable row. See `suggestedTitle`.
+    if (next === STEP_TITLES.length - 1 && !values.title.trim()) {
+      const title = suggestedTitle(values);
+      if (title) set('title', title);
+    }
     setStep(next);
     setReached((r) => Math.max(r, next));
     setAttempted(false);
@@ -412,18 +418,32 @@ export function ListingForm({
                 hint="A specific title and an honest description get more enquiries than a long one."
               />
               <Input
-                label="Title"
-                placeholder="e.g. 3 BHK Apartment in Whitefield"
+                label="Title (optional)"
+                placeholder={suggestedTitle(values) || 'e.g. 3 BHK Apartment in Whitefield'}
                 value={values.title}
                 onChangeText={(v) => set('title', v)}
                 maxLength={TITLE_MAX}
                 error={showErrors && step === 1 ? blocker ?? undefined : undefined}
                 hint={
-                  values.title.trim().length < TITLE_MIN
-                    ? `At least ${TITLE_MIN} characters. Say what and where.`
-                    : `${values.title.length}/${TITLE_MAX}`
+                  values.title.trim()
+                    ? `${values.title.length}/${TITLE_MAX}`
+                    : 'Leave it empty and one is written from your details before you post.'
                 }
               />
+              {/* One tap to take the suggestion now. It is rewritten with the
+                  BHK and locality later if the owner leaves the field empty. */}
+              {!values.title.trim() && suggestedTitle(values) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use the title ${suggestedTitle(values)}`}
+                  onPress={() => set('title', suggestedTitle(values))}
+                  className="-mt-xs mb-xs self-start py-xs"
+                >
+                  <Text variant="footnote" tone="accent">
+                    Use “{suggestedTitle(values)}”
+                  </Text>
+                </Pressable>
+              ) : null}
               <Input
                 label="Description"
                 placeholder="Condition, what is nearby, what makes it worth a visit…"

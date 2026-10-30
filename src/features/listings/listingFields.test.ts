@@ -9,6 +9,7 @@ import {
   reconcileType,
   selectCategory,
   stepBlocker,
+  suggestedTitle,
 } from './listingFields.ts';
 import { EMPTY_LISTING_FORM, type ListingFormValues } from './types.ts';
 
@@ -196,6 +197,25 @@ describe('filing a new photo', () => {
 
   it('an unknown type falls back to its category set, still the outside first', () => {
     assert.equal(defaultPhotoCategory('Residential', 'Treehouse', 0), 'exterior');
+  });
+});
+
+describe('the suggested title', () => {
+  const base: ListingFormValues = { ...EMPTY_LISTING_FORM, propertyTypeName: 'Apartment / Flat', listingType: 'Sale' };
+
+  it('uses only what is known so far', () => {
+    assert.equal(suggestedTitle(base), 'Apartment for sale');
+    assert.equal(
+      suggestedTitle({ ...base, bhkType: '3 BHK', locality: 'Whitefield' }),
+      '3 BHK Apartment for sale in Whitefield'
+    );
+    assert.equal(suggestedTitle({ ...base, listingType: 'Rent', propertyTypeName: 'Studio Apartment', bhkType: 'Studio' }), 'Studio Apartment for rent');
+    assert.equal(suggestedTitle({ ...base, propertyTypeName: '' }), '');
+  });
+
+  it('an empty title passes step 2, a too-short typed one does not', () => {
+    assert.equal(stepBlocker(1, { ...base, title: '' }, 0), null);
+    assert.match(stepBlocker(1, { ...base, title: 'Flat' }, 0) ?? '', /at least 5 characters/);
   });
 });
 
