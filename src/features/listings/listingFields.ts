@@ -251,6 +251,7 @@ export function appendListingFields(form: FieldSink, values: ListingFormValues) 
     const balconies = num(values.balconies);
     if (balconies !== undefined) form.append('balconies', String(balconies));
     appendIfPresent(form, 'furnishing', values.furnishing);
+    appendIfPresent(form, 'floorNo', values.floorNo);
     appendIfPresent(form, 'totalFloors', values.totalFloors);
     appendIfPresent(form, 'facing', values.facing);
     appendIfPresent(form, 'constructionStatus', values.constructionStatus);

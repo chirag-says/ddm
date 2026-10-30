@@ -199,6 +199,13 @@ describe('filing a new photo', () => {
   });
 });
 
+describe('the floor', () => {
+  it('is sent when given, and not when left empty', () => {
+    assert.equal(fieldsOf({ floorNo: '3', totalFloors: '12' }).floorNo, '3');
+    assert.equal('floorNo' in fieldsOf({ floorNo: '' }), false);
+  });
+});
+
 describe('money typed with commas', () => {
   it('a deposit and booking amount typed with commas are sent as digits', () => {
     assert.equal(fieldsOf({ listingType: 'Rent', deposit: '50,000' }).deposit, '50000');

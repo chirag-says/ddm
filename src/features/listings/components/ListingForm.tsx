@@ -7,6 +7,7 @@ import { spacing, useTheme, type Theme } from '@/theme';
 import {
   Button,
   Card,
+  ChoiceField,
   Chip,
   DateField,
   Input,
@@ -75,6 +76,11 @@ function areaFieldsFor(categoryName: string, propertyTypeName: string) {
     superBuiltUp: categoryName === 'Residential',
     total: categoryName !== 'Residential',
   };
+}
+
+/** A catalog list as choice options; the value is the label. */
+function asOptions<T extends string>(values: readonly T[]) {
+  return values.map((v) => ({ label: v, value: v }));
 }
 
 /** Digits only; a price typed with commas or a stray space still parses. */
@@ -370,27 +376,14 @@ export function ListingForm({
                   {/* How finished the space is handed over — the first thing a
                       commercial tenant asks, and mobile could not state it. */}
                   {values.categoryName === 'Commercial' ? (
-                    <View className="mt-base">
-                      <Text variant="footnote" tone="secondary" className="mb-xs">
-                        Sub-type
-                      </Text>
-                      <View className="flex-row flex-wrap">
-                        {COMMERCIAL_SUBTYPES.map((sub) => (
-                          <Chip
-                            key={sub}
-                            label={sub}
-                            selected={values.commercialSubType === sub}
-                            onPress={() =>
-                              // Tapping the selected chip clears it: the field
-                              // is optional and there is no other way back to
-                              // "not stated" once a chip has been pressed.
-                              set('commercialSubType', values.commercialSubType === sub ? '' : sub)
-                            }
-                            className="mb-sm mr-sm"
-                          />
-                        ))}
-                      </View>
-                    </View>
+                    <ChoiceField
+                      label="Sub-type"
+                      options={asOptions(COMMERCIAL_SUBTYPES)}
+                      value={values.commercialSubType}
+                      onChange={(v) => set('commercialSubType', v)}
+                      onClear={() => set('commercialSubType', '')}
+                      className="mt-base"
+                    />
                   ) : null}
                 </>
               )}
@@ -1157,23 +1150,21 @@ function ResidentialDetails({
     The value IS the label here: it is submitted verbatim as `features.bhk`,
     which is what the search parser reads back.
   */
-  const bhkOptions = BHK_OPTIONS.map((v) => ({ label: v, value: v }));
-  // From the catalog: the local copy read "Semi-furnished" where the website
-  // and the corpus both say "Semi-Furnished", so the two clients disagreed on
-  // the value stored for the same choice.
-  const furnishingOptions = FURNISHING_OPTIONS.map((v) => ({
-    label: v,
-    value: v,
-  }));
+  // Every single-choice question below goes through `ChoiceField`, which shows
+  // up to four options as chips and more as a dropdown (2026-10-30). Values
+  // come from the catalog: a local copy once read "Semi-furnished" where the
+  // website and the corpus say "Semi-Furnished".
+  const unlisted = (value: string, options: readonly string[]) =>
+    value && !options.includes(value) ? `Currently “${value}”. Pick one to replace it.` : undefined;
 
   return (
     <>
-      <Select
+      <ChoiceField
         label="BHK *"
-        placeholder="Choose"
-        value={values.bhkType || undefined}
-        options={bhkOptions}
+        options={asOptions(BHK_OPTIONS)}
+        value={values.bhkType}
         error={bhkError}
+        onClear={() => patch({ bhkType: '', bhk: '' })}
         onChange={(v) => {
           /*
             Picking a BHK also fills the bedroom count, exactly as the website
@@ -1209,133 +1200,125 @@ function ResidentialDetails({
         />
       </View>
 
-      <Select
+      {/* Which floor, beside how many: the first thing asked about a flat,
+          and a field the website sends that mobile never asked for. */}
+      <View className="flex-row">
+        <Input
+          label="Floor"
+          placeholder="e.g. 3"
+          value={values.floorNo}
+          onChangeText={(v) => set('floorNo', v)}
+          keyboardType="number-pad"
+          containerClassName="mr-base flex-1"
+        />
+        <Input
+          label="Total floors"
+          value={values.totalFloors}
+          onChangeText={(v) => set('totalFloors', v)}
+          keyboardType="number-pad"
+          containerClassName="flex-1"
+        />
+      </View>
+
+      <ChoiceField
+        label="Furnishing"
+        options={asOptions(FURNISHING_OPTIONS)}
+        value={values.furnishing}
+        onChange={(v) => set('furnishing', v)}
+        onClear={() => set('furnishing', '')}
+        className="mt-base"
+      />
+
+      <ChoiceField
         label="Property age"
-        placeholder="Choose"
-        value={values.propertyAge || undefined}
-        options={PROPERTY_AGE_OPTIONS.map((v) => ({ label: v, value: v }))}
+        options={asOptions(PROPERTY_AGE_OPTIONS)}
+        value={values.propertyAge}
         onChange={(v) => set('propertyAge', v)}
+        onClear={() => set('propertyAge', '')}
+        className="mt-sm"
       />
 
       {/*
         Rent only, and the two questions every Indian rental listing is asked
-        before a viewing is agreed. Mobile collected neither, so an owner could
-        not state them and a tenant had to message to find out.
+        before a viewing is agreed.
       */}
       {values.listingType === 'Rent' ? (
-        <View className="mt-base">
-          <Select
-            label="Preferred tenants"
-            placeholder="Choose"
-            value={values.allowedFor || undefined}
-            options={TENANT_OPTIONS.map((v) => ({ label: v, value: v }))}
-            onChange={(v) => set('allowedFor', v)}
-          />
-          <View className="mt-base">
-            <Select
-              label="Pet friendly"
-              placeholder="Choose"
-              value={values.petFriendly || undefined}
-              options={[
-                { label: 'No', value: 'No' },
-                { label: 'Yes', value: 'Yes' },
-              ]}
-              onChange={(v) => set('petFriendly', v)}
-            />
-          </View>
-        </View>
-      ) : null}
-
-      <Select
-        label="Furnishing"
-        placeholder="Choose"
-        value={values.furnishing || undefined}
-        options={furnishingOptions}
-        onChange={(v) => set('furnishing', v)}
-      />
-
-      <Input
-        label="Total floors in the building"
-        value={values.totalFloors}
-        onChangeText={(v) => set('totalFloors', v)}
-        keyboardType="number-pad"
-        containerClassName="mt-base"
-      />
-
-      {/*
-        Chips from the catalog, not free text. Both of these were typed
-        fields, so the corpus holds "east", "East facing", "E" and "Est" for
-        one fact, and the search screen's construction-status filter, which
-        keyword-matches the stored string, missed anything not spelled its
-        way. The option lists already existed in `catalog.ts`; the form was
-        the one place not using them. Tapping the chosen chip clears it,
-        since both fields are optional and there is no other way back to
-        "not stated".
-      */}
-      <Text variant="footnote" tone="secondary" className="mb-xs mt-base">
-        Facing
-      </Text>
-      {values.facing && !(FACING_OPTIONS as readonly string[]).includes(values.facing) ? (
-        <Text variant="caption" tone="muted" className="mb-xs">
-          Currently “{values.facing}”. Pick a direction to replace it.
-        </Text>
-      ) : null}
-      <View className="flex-row flex-wrap">
-        {FACING_OPTIONS.map((option) => (
-          <Chip
-            key={option}
-            label={option}
-            selected={values.facing === option}
-            onPress={() => set('facing', values.facing === option ? '' : option)}
-            className="mb-sm mr-sm"
-          />
-        ))}
-      </View>
-
-      {values.listingType === 'Sale' ? (
         <>
-          <Text variant="footnote" tone="secondary" className="mb-xs mt-sm">
-            Construction status
-          </Text>
-          {values.constructionStatus &&
-          !(CONSTRUCTION_STATUS_OPTIONS as readonly string[]).includes(values.constructionStatus) ? (
-            <Text variant="caption" tone="muted" className="mb-xs">
-              Currently “{values.constructionStatus}”. Pick one to replace it.
-            </Text>
-          ) : null}
-          <View className="flex-row flex-wrap">
-            {CONSTRUCTION_STATUS_OPTIONS.map((option) => (
-              <Chip
-                key={option}
-                label={option}
-                selected={values.constructionStatus === option}
-                onPress={() =>
-                  set('constructionStatus', values.constructionStatus === option ? '' : option)
-                }
-                className="mb-sm mr-sm"
-              />
-            ))}
-          </View>
+          <ChoiceField
+            label="Preferred tenants"
+            options={asOptions(TENANT_OPTIONS)}
+            value={values.allowedFor}
+            onChange={(v) => set('allowedFor', v)}
+            onClear={() => set('allowedFor', '')}
+            className="mt-sm"
+          />
+          <ChoiceField
+            label="Pet friendly"
+            options={asOptions(['Yes', 'No'] as const)}
+            value={values.petFriendly}
+            onChange={(v) => set('petFriendly', v)}
+            onClear={() => set('petFriendly', '')}
+            className="mt-sm"
+          />
         </>
       ) : null}
 
-      <View className="mt-base flex-row flex-wrap">
-        {(
-          [
-            ['servantRoom', 'Servant room'],
-            ['poojaRoom', 'Pooja room'],
-            ['studyRoom', 'Study room'],
-            ['storeRoom', 'Store room'],
-          ] as const
-        ).map(([key, label]) => (
-          <Chip
-            key={key}
-            label={label}
-            selected={values[key]}
-            onPress={() => set(key, !values[key])}
-            className="mb-sm mr-sm"
-          />
-        ))}
+      {/*
+        From the catalog, not free text: typed, the corpus held "east", "East
+        facing", "E" and "Est" for one fact. Eight directions are a dropdown
+        now; as chips they sat directly above the room toggles and read as one
+        list (2026-10-30).
+      */}
+      <ChoiceField
+        label="Facing"
+        placeholder="Choose a direction"
+        options={asOptions(FACING_OPTIONS)}
+        value={values.facing}
+        hint={unlisted(values.facing, FACING_OPTIONS)}
+        onChange={(v) => set('facing', v)}
+        onClear={() => set('facing', '')}
+        className="mt-sm"
+      />
+
+      {values.listingType === 'Sale' ? (
+        <ChoiceField
+          label="Construction status"
+          options={asOptions(CONSTRUCTION_STATUS_OPTIONS)}
+          value={values.constructionStatus}
+          hint={unlisted(values.constructionStatus, CONSTRUCTION_STATUS_OPTIONS)}
+          onChange={(v) => set('constructionStatus', v)}
+          onClear={() => set('constructionStatus', '')}
+          className="mt-xs"
+        />
+      ) : null}
+
+      {/* Several can be true at once, so chips that toggle, under their own
+          heading so they are not read as more answers to the question above. */}
+      <View className="mt-base border-t border-border pt-base">
+        <Text variant="subhead" tone="secondary">
+          Extra rooms
+        </Text>
+        <Text variant="caption" tone="muted" className="mb-sm">
+          Tick the ones this home has.
+        </Text>
+        <View className="flex-row flex-wrap">
+          {(
+            [
+              ['servantRoom', 'Servant room'],
+              ['poojaRoom', 'Pooja room'],
+              ['studyRoom', 'Study room'],
+              ['storeRoom', 'Store room'],
+            ] as const
+          ).map(([key, label]) => (
+            <Chip
+              key={key}
+              label={label}
+              selected={values[key]}
+              onPress={() => set(key, !values[key])}
+              className="mb-sm mr-sm"
+            />
+          ))}
+        </View>
       </View>
     </>
   );

@@ -58,6 +58,7 @@ export function propertyToFormValues(property: Property): ListingFormValues {
     bathrooms: asString(property.bathrooms),
     balconies: asString(property.balconies),
     furnishing: property.furnishing ?? '',
+    floorNo: asString(property.floorNo),
     totalFloors: property.totalFloors ?? '',
     facing: property.facing ?? '',
     constructionStatus: property.constructionStatus ?? '',
