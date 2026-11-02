@@ -23,7 +23,7 @@ Mark each row PASS or FAIL with one line of what you saw. Nothing ships until ev
 | n | Chirag | Tablet or Android 16 large-screen emulator | no letterboxing; rotation free (`docs/android-play-readiness.md`) | |
 | o | Sakha | Sentry org `dealdirect`: a crash or test event from the preview build | event visible with user id and role only | |
 | p | Sakha | Preview profile URLs | both https | PASS by config: `eas.json` preview API and socket are https |
-| q | Chirag | Upload the preview build to the internal testing track; read the pre-launch report | no new crashes or policy warnings | |
+| q | Chirag | Play tracks take an AAB, not the preview APK: after rows d-p pass, the production AAB (built on Chirag's go) goes to the **internal testing** track first; install it from Play over 0.4.0 and read the pre-launch report. Internal, not open testing: no review delay and no public users before the gate passes | no new crashes or policy warnings; that same AAB is then promoted to production | |
 | r | n/a | Demo listings kept for launch | no action | PASS (decision) |
 
 After all rows PASS: production AAB (`eas build --profile production --platform android`) only on Chirag's "go", upload to production at 20% staged rollout with the release notes in `docs/play-data-safety.md`, then flip `REQUIRE_AGE_CONFIRMATION=true` on Hostinger once 0.5.0 is the installed build.
