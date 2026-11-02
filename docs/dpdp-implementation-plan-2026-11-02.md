@@ -207,5 +207,6 @@ Phases 2, 3 and 4 can run in parallel sessions once Phase 1 is deployed; they to
 | Mobile `.env:17` socket URL to https (0.1) | Chirag, one-character edit |
 | Production database has no backup (0.3) | Client's cost decision: Atlas Flex tier or a nightly mongodump |
 | Atlas organisation has no security/operations contact | Chirag adds Sanjay Goel and himself in Organization Settings |
+| Leaked secrets (Cloudinary, JWT live; Gemini, Mappls unused) | Chirag decided 2026-11-02: no rotation for now. Recorded as accepted risk (J5); revisit before real users sign up, since a JWT rotation then logs them all out |
 | Play Console clicks and the two builds | Chirag, with my text and his OK per build |
 | Lawyer's read of the final English notice before translations | Client |
