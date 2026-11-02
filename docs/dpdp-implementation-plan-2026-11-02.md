@@ -144,6 +144,8 @@ Tests: Admin has no test runner in `package.json`; verify by running the Vite de
 
 ### Phase 5: Play Console and production release (session 5, this repo, Chirag at the console)
 
+**IN PROGRESS 2026-11-03.** 5.1 text ready in `docs/play-data-safety.md` (builder sharing declared, release notes 281 chars). Gate tracked in `docs/release-gate-0.5.0.md`: a, b, c, p, r PASS (Sakha); d, e, f, h, i, l PASS on Chirag's phone with the 0.5.0 preview APK (EAS `02057f8e`). Version renamed 1.0.0 for production (`4a1cf9c`, Chirag). Production AAB EAS `8c1831a9` queued. Open: g, j, k, l2, m, n, o, q on the 1.0.0 AAB via **internal testing** (not open testing: no review delay, no public users before the gate), then promote to production at 20%, then `REQUIRE_AGE_CONFIRMATION=true` on Hostinger. Deviation: plan said "upload the preview build"; Play tracks take only an AAB, so the production AAB is the internal-testing build.
+
 5.1 Console forms (Chirag clicks, I supply the text):
 - Data safety: fill from `docs/play-data-safety.md`, adjusted by Phase 0.2 (Sentry) and 0.4 (WhatsApp sender). Deletion URL `https://dealdirect.in/delete-account`.
 - Target audience and content: 18 and over only. Content rating questionnaire as an adult-only service.
