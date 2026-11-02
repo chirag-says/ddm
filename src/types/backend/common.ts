@@ -85,6 +85,8 @@ export type BackendErrorCode =
   | 'GOOGLE_CONFIRMATION_REQUIRED'
   | 'INVALID_GOOGLE_CONFIRMATION'
   | 'USE_GOOGLE_SIGNIN'
+  // A signup without the 18+ tick, while REQUIRE_AGE_CONFIRMATION is on.
+  | 'AGE_CONFIRMATION_REQUIRED'
   | 'NO_PASSWORD_SET'
   | 'NO_PHONE_ON_ACCOUNT'
   // Just-in-time phone verification (middleware/requirePhoneVerified.js and

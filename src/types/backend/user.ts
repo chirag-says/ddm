@@ -83,6 +83,8 @@ export interface User extends Timestamps {
   preferences?: {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
+    /** Offers and new-project messages by email, SMS or WhatsApp. Default false. */
+    marketing?: boolean;
     [key: string]: unknown;
   };
   lastLogin?: IsoDate;
@@ -129,6 +131,10 @@ export interface RegisterRequest {
    */
   role?: 'owner' | 'user';
   referralCode?: string;
+  /** The signup ticks; see src/auth/signupConsent.ts. Ignored by servers before 2026-11-02. */
+  ageConfirmed?: boolean;
+  termsAccepted?: boolean;
+  marketingOptIn?: boolean;
 }
 
 export interface VerifyOtpRequest {
@@ -198,6 +204,19 @@ export interface DeleteAccountResponse {
    * showing — the success message promises the listings are gone.
    */
   retainedListings?: number;
+  /**
+   * What survives, from `USER_RETENTION` in backend/utils/aggregateDelete.js.
+   * Absent on servers before 2026-11-02.
+   */
+  kept?: string[];
+  retentionDays?: number;
+  /** Kept without the user's name. */
+  anonymousKept?: string[];
+}
+
+/** `PUT /users/profile` as JSON, changing only the preference keys sent. */
+export interface UpdatePreferencesRequest {
+  preferences: { marketing: boolean };
 }
 
 // --- Google sign-in -------------------------------------------------------
@@ -213,6 +232,13 @@ export interface GoogleSignInRequest {
   idToken: string;
   /** Carried through first sign-in so referral attribution is not lost. */
   referralCode?: string;
+  /**
+   * The signup ticks, sent from the register screen only. Read when the token
+   * would create an account; a returning Google user is never asked.
+   */
+  ageConfirmed?: boolean;
+  termsAccepted?: boolean;
+  marketingOptIn?: boolean;
 }
 
 /**

@@ -1,20 +1,24 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import { Link, useRouter } from 'expo-router';
+import { useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import {
+  ageConfirmationMessage,
   AuthShell,
+  canCreateAccount,
   GoogleAuthButton,
   GoogleLinkSheet,
   isGoogleSignInConfigured,
   registerSchema,
   resumeAfterAuth,
   useAuth,
+  withSignupConsent,
   type RegisterValues,
+  type SignupTicks,
 } from '@/auth';
 import { gesture, useTheme } from '@/theme';
 import { Button, Input, PasswordInput, Text } from '@/ui';
@@ -48,8 +52,13 @@ import { Button, Input, PasswordInput, Text } from '@/ui';
  */
 export default function RegisterScreen() {
   const { registerDirect } = useAuth();
+  const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingLink, setPendingLink] = useState<{ email: string; idToken: string } | null>(null);
+  // Both unticked: the 18+ tick is the user's statement, and marketing is
+  // opt-in (DPDP). See src/auth/signupConsent.ts.
+  const [ticks, setTicks] = useState<SignupTicks>({ ageConfirmed: false, marketingOptIn: false });
+  const [tickError, setTickError] = useState<string | null>(null);
   const theme = useTheme();
 
   const { control, handleSubmit, formState, getValues } = useForm<RegisterValues>({
@@ -64,16 +73,23 @@ export default function RegisterScreen() {
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
+    setTickError(null);
+    if (!canCreateAccount(ticks)) return;
 
     try {
-      await registerDirect({
-        ...values,
-        referralCode: values.referralCode?.trim() || undefined,
-      });
+      await registerDirect(
+        withSignupConsent({ ...values, referralCode: values.referralCode?.trim() || undefined }, ticks)
+      );
       resumeAfterAuth();
     } catch (error) {
       if (!(error instanceof ApiError)) {
         setFormError('Something went wrong. Please try again.');
+        return;
+      }
+
+      const ageMessage = ageConfirmationMessage(error, true);
+      if (ageMessage) {
+        setTickError(ageMessage);
         return;
       }
 
@@ -117,8 +133,36 @@ export default function RegisterScreen() {
         </View>
       }
     >
+      {/* Above both buttons, because it gates both. */}
+      <Tick
+        checked={ticks.ageConfirmed}
+        onToggle={() => {
+          setTickError(null);
+          setTicks((t) => ({ ...t, ageConfirmed: !t.ageConfirmed }));
+        }}
+        accessibilityLabel="I am 18 or older and accept the Terms and Privacy Policy"
+        error={tickError}
+      >
+        I am 18 or older and accept the{' '}
+        <Text variant="callout" tone="accent" onPress={() => router.push('/legal/terms')} accessibilityRole="link">
+          Terms
+        </Text>{' '}
+        and{' '}
+        <Text variant="callout" tone="accent" onPress={() => router.push('/legal/privacy')} accessibilityRole="link">
+          Privacy Policy
+        </Text>
+      </Tick>
+      <Tick
+        checked={ticks.marketingOptIn}
+        onToggle={() => setTicks((t) => ({ ...t, marketingOptIn: !t.marketingOptIn }))}
+        accessibilityLabel="Send me offers and new project updates by email, SMS or WhatsApp"
+      >
+        Send me offers and new project updates by email, SMS or WhatsApp
+      </Tick>
+
       <GoogleAuthButton
         referralCode={getValues('referralCode')?.trim() || undefined}
+        signupTicks={ticks}
         onLinkRequired={(email, idToken) => setPendingLink({ email, idToken })}
         onSignedIn={resumeAfterAuth}
       />
@@ -220,6 +264,7 @@ export default function RegisterScreen() {
         label="Create account"
         fullWidth
         loading={formState.isSubmitting}
+        disabled={!canCreateAccount(ticks)}
         onPress={() => void onSubmit()}
       />
 
@@ -232,5 +277,47 @@ export default function RegisterScreen() {
         }}
       />
     </AuthShell>
+  );
+}
+
+/** A checkbox row: the whole row toggles, a link inside the label navigates. */
+function Tick({
+  checked,
+  onToggle,
+  accessibilityLabel,
+  error,
+  children,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  accessibilityLabel: string;
+  error?: string | null;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View className="mb-base">
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked }}
+        accessibilityLabel={accessibilityLabel}
+        onPress={onToggle}
+        className="flex-row items-start gap-sm"
+      >
+        <Ionicons
+          name={checked ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={checked ? theme.colors.accent : theme.colors.textMuted}
+        />
+        <Text variant="callout" className="flex-1">
+          {children}
+        </Text>
+      </Pressable>
+      {error ? (
+        <Text variant="footnote" tone="danger" className="mt-xs">
+          {error}
+        </Text>
+      ) : null}
+    </View>
   );
 }

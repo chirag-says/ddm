@@ -27,7 +27,12 @@ import {
 } from '@/notifications/pushToken';
 import { setSentryUser } from '@/observability';
 import { clearUserScopedStorage } from '@/storage';
-import type { SendPhoneOtpResponse, User } from '@/types/backend/user';
+import type {
+  GoogleSignInRequest,
+  RegisterRequest,
+  SendPhoneOtpResponse,
+  User,
+} from '@/types/backend/user';
 import {
   captureSessionCookie,
   clearSessionCookie,
@@ -36,7 +41,7 @@ import {
 } from './cookies';
 import { linkDeviceOnce } from './deviceLink';
 import { forgetGoogleAccount, signInWithGoogle as googleSignIn } from './googleSignIn';
-import type { LoginValues, RegisterValues } from './schemas';
+import type { LoginValues } from './schemas';
 
 /**
  * Session lifecycle.
@@ -80,7 +85,7 @@ interface AuthContextValue {
    * `/users/register` stays live on the backend for published builds that still
    * call it, but nothing in this app does.
    */
-  registerDirect: (values: RegisterValues) => Promise<User>;
+  registerDirect: (body: RegisterRequest) => Promise<User>;
   verifyOtp: (email: string, otp: string, referralCode?: string) => Promise<User>;
   resendOtp: (email: string) => Promise<void>;
   /**
@@ -93,7 +98,7 @@ interface AuthContextValue {
    * refuses to merge on an email match alone because registration never
    * verified email, so an unlinked account could belong to anyone.
    */
-  signInWithGoogle: (referralCode?: string) => Promise<GoogleSignInOutcome>;
+  signInWithGoogle: (extra?: Omit<GoogleSignInRequest, 'idToken'>) => Promise<GoogleSignInOutcome>;
   linkGoogleAccount: (idToken: string, password: string) => Promise<User>;
   /** Just-in-time phone link. Used by the verification sheet, not by screens. */
   sendPhoneOtp: (phone: string) => Promise<SendPhoneOtpResponse>;
@@ -350,10 +355,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [establishSession]
   );
 
-  const registerDirect = useCallback(async (values: RegisterValues): Promise<User> => {
+  const registerDirect = useCallback(async (body: RegisterRequest): Promise<User> => {
     // Creates a VERIFIED buyer account and ESTABLISHES THE SESSION via Set-Cookie.
     // Goes through establishSession to confirm the cookie took, same as login.
-    const response = await call(usersEndpoints.registerDirect, { data: values });
+    const response = await call(usersEndpoints.registerDirect, { data: body });
     return establishSession(response.user);
   }, [establishSession]);
 
@@ -372,14 +377,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(
-    async (referralCode?: string): Promise<GoogleSignInOutcome> => {
+    async (extra?: Omit<GoogleSignInRequest, 'idToken'>): Promise<GoogleSignInOutcome> => {
       // Google's sheet first. Cancellation and "this build cannot do Google"
       // both throw their own error types, which the screen distinguishes.
       const idToken = await googleSignIn();
 
       try {
+        // `extra` is the referral code and, from the register screen only, the
+        // signup ticks (src/auth/signupConsent.ts).
         const response = await call(usersEndpoints.googleSignIn, {
-          data: { idToken, referralCode },
+          data: { idToken, ...extra },
         });
         return { status: 'signedIn', user: await establishSession(response.user) };
       } catch (error) {

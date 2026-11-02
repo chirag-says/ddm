@@ -1,8 +1,10 @@
 import { Image as ExpoImage } from 'expo-image';
+import { Link } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { ApiError } from '@/api';
+import { gesture } from '@/theme';
 import { Button, Text } from '@/ui';
 import { useAuth, type GoogleSignInOutcome } from '../AuthProvider';
 import {
@@ -10,6 +12,12 @@ import {
   GoogleSignInUnavailable,
   isGoogleSignInConfigured,
 } from '../googleSignIn';
+import {
+  ageConfirmationMessage,
+  canCreateAccount,
+  withSignupConsent,
+  type SignupTicks,
+} from '../signupConsent';
 
 /** Google's "G" mark, the official four-colour asset. */
 const GOOGLE_G = require('../../../assets/brand/google-g.svg');
@@ -17,6 +25,13 @@ const GOOGLE_G = require('../../../assets/brand/google-g.svg');
 export interface GoogleAuthButtonProps {
   /** Carried through a first-time sign-in so referral attribution is not lost. */
   referralCode?: string;
+  /**
+   * The register screen's ticks. When given, the button waits for the 18+ tick
+   * and sends the ticks with the token. The login screen passes none: a
+   * returning Google user is never asked, and a brand-new one the server
+   * refuses is sent to Create account.
+   */
+  signupTicks?: SignupTicks;
   /** Called when the account already has a password and must be proved first. */
   onLinkRequired: (email: string, idToken: string) => void;
   /** Called after a session is established. */
@@ -38,20 +53,25 @@ export interface GoogleAuthButtonProps {
  */
 export function GoogleAuthButton({
   referralCode,
+  signupTicks,
   onLinkRequired,
   onSignedIn,
 }: GoogleAuthButtonProps) {
   const { signInWithGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsSignup, setNeedsSignup] = useState(false);
 
   if (!isGoogleSignInConfigured()) return null;
 
   const onPress = async () => {
     setError(null);
+    setNeedsSignup(false);
     setBusy(true);
     try {
-      const outcome: GoogleSignInOutcome = await signInWithGoogle(referralCode);
+      const outcome: GoogleSignInOutcome = await signInWithGoogle(
+        signupTicks ? withSignupConsent({ referralCode }, signupTicks) : { referralCode }
+      );
 
       if (outcome.status === 'linkRequired') {
         onLinkRequired(outcome.email, outcome.idToken);
@@ -68,6 +88,12 @@ export function GoogleAuthButton({
       }
 
       if (err instanceof ApiError) {
+        const ageMessage = ageConfirmationMessage(err, signupTicks !== undefined);
+        if (ageMessage) {
+          setError(ageMessage);
+          setNeedsSignup(signupTicks === undefined);
+          return;
+        }
         if (err.code === 'ACCOUNT_BLOCKED') {
           setError(
             err.details.blockReason
@@ -103,6 +129,7 @@ export function GoogleAuthButton({
         variant="secondary"
         fullWidth
         loading={busy}
+        disabled={signupTicks ? !canCreateAccount(signupTicks) : false}
         /*
           Google's four-colour "G", as the brand guidelines ask for on a
           "Continue with Google" control. It used to be Ionicons' monochrome
@@ -125,6 +152,15 @@ export function GoogleAuthButton({
         <Text variant="footnote" tone="danger" className="mt-sm">
           {error}
         </Text>
+      ) : null}
+      {needsSignup ? (
+        <Link href="/(auth)/register" asChild>
+          <Pressable accessibilityRole="link" hitSlop={gesture.hitSlop} className="mt-xs">
+            <Text variant="callout" tone="accent">
+              Create account
+            </Text>
+          </Pressable>
+        </Link>
       ) : null}
     </View>
   );
