@@ -4,5 +4,6 @@ export {
   useSessions,
   useRevokeSession,
   useDeleteAccount,
+  useMarketingPreference,
   type UpdateProfileValues,
 } from './hooks';

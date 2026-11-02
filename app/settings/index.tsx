@@ -6,7 +6,7 @@ import { Pressable, View, Switch } from 'react-native';
 import { ApiError } from '@/api';
 import { PhoneOtpSheet, useAuth } from '@/auth';
 import { optionalNativeModule } from '@/config/optionalNative';
-import { useUpdateProfile } from '@/features/profile';
+import { useMarketingPreference, useUpdateProfile } from '@/features/profile';
 import { gesture, screenPadding, scrollBottomPadding, useTheme } from '@/theme';
 import {
   Avatar,
@@ -108,6 +108,8 @@ export default function SettingsScreen() {
             />
           </ListGroup>
 
+          <MessagesGroup />
+
           {/* Its own group, with a footer that says what it does. Deleting an
               account sitting one row below "change password" in the same
               container reads as an equivalent, reversible setting. */}
@@ -125,6 +127,44 @@ export default function SettingsScreen() {
         </Refreshable>
       </KeyboardAvoider>
     </Screen>
+  );
+}
+
+/**
+ * Promotional messages, opt-in (DPDP). Saved the moment it is flipped, apart
+ * from the profile form's Save button; service messages (OTPs, enquiry
+ * alerts) are not affected.
+ */
+function MessagesGroup() {
+  const theme = useTheme();
+  const { value, setMarketing, isSaving, error } = useMarketingPreference();
+
+  return (
+    <ListGroup
+      title="Messages"
+      className="mt-xl"
+      footer={
+        error
+          ? 'Could not save that change. Your choice is as it was; please try again.'
+          : 'Messages about your account, enquiries and deals are always sent.'
+      }
+    >
+      <ListRow
+        icon="megaphone-outline"
+        label="Offers and new projects"
+        detail="By email, SMS or WhatsApp"
+        trailing={
+          <Switch
+            accessibilityLabel="Offers and new projects by email, SMS or WhatsApp"
+            value={value}
+            disabled={isSaving}
+            onValueChange={(next) => void setMarketing(next)}
+            trackColor={{ true: theme.colors.accent, false: theme.colors.surfaceMuted }}
+            thumbColor={theme.colors.surface}
+          />
+        }
+      />
+    </ListGroup>
   );
 }
 

@@ -14,6 +14,7 @@ import { useCallback, useState } from 'react';
 import { call, qk, usersEndpoints } from '@/api';
 import { useAuth } from '@/auth';
 import type { UserAddress, UserGender, UserSessionSummary } from '@/types/backend/user';
+import { isMarketingOn, marketingBody, saveMarketingChoice } from './marketingPreference';
 
 // --- Edit profile ----------------------------------------------------------
 
@@ -80,6 +81,42 @@ export function useUpdateProfile() {
   return {
     update: mutation.mutateAsync,
     isPending: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+// --- Marketing opt-in ----------------------------------------------------
+
+/**
+ * The Settings switch for offers and new-project messages. Saved on its own,
+ * the moment it is flipped, as JSON with only `preferences.marketing`, so it
+ * neither waits for nor overwrites the profile form above it.
+ *
+ * After a save the switch keeps showing what was saved (the refresh that
+ * follows can fail without undoing it); a failed save puts the old value back.
+ * Two devices: last write wins.
+ */
+export function useMarketingPreference() {
+  const { user, refreshUser } = useAuth();
+  const [shown, setShown] = useState<boolean | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (marketing: boolean) =>
+      call(usersEndpoints.updatePreferences, { data: marketingBody(marketing) }),
+  });
+
+  const value = shown ?? isMarketingOn(user);
+
+  const setMarketing = async (next: boolean) => {
+    mutation.reset();
+    const saved = await saveMarketingChoice(next, value, setShown, mutation.mutateAsync);
+    if (saved) void refreshUser();
+  };
+
+  return {
+    value,
+    setMarketing,
+    isSaving: mutation.isPending,
     error: mutation.error,
   };
 }

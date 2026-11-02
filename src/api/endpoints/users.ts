@@ -31,6 +31,7 @@ import type {
   SendPhoneOtpRequest,
   SendPhoneOtpResponse,
   SessionsResponse,
+  UpdatePreferencesRequest,
   VerifyOtpRequest,
   VerifyPhoneOtpRequest,
 } from '@/types/backend/user';
@@ -154,6 +155,16 @@ export const usersEndpoints = {
     auth: 'user',
     envelope: 'keyed',
     note: 'multipart/form-data. Optional single file field `profileImage`.',
+  }),
+
+  updatePreferences: defineEndpoint<UpdatePreferencesRequest, ProfileResponse>({
+    method: 'PUT',
+    path: '/users/profile',
+    auth: 'user',
+    envelope: 'keyed',
+    note:
+      'The same route as updateProfile, sent as JSON with only `preferences`. The backend ' +
+      'sets each boolean key on its own, so the other preferences and the profile stay as they are.',
   }),
 
   changePassword: defineEndpoint<ChangePasswordRequest, OkEnvelope>({
