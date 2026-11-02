@@ -12,7 +12,6 @@ import {
   KeyboardAvoider,
   Screen,
   ScreenHeader,
-  Segmented,
   Text,
   useFontFamily,
   type TextVariant,
@@ -25,7 +24,6 @@ import {
   type CalloutTone,
   type CardItem,
   type ContentPage,
-  type ContentPart,
   type FaqItem,
   type IconName,
   type RichText,
@@ -90,7 +88,7 @@ export function ContentPageView({ page, backTo = '/support', children }: Content
           keyboardShouldPersistTaps="handled"
         >
           <PageIntro page={page} />
-          {page.parts ? <Parts parts={page.parts} /> : <Sections sections={page.sections} />}
+          <Sections sections={page.sections} />
           {children ? <View style={{ marginTop: spacing['2xl'] }}>{children}</View> : null}
         </ScrollView>
       </KeyboardAvoider>
@@ -111,37 +109,6 @@ function PageIntro({ page }: { page: ContentPage }) {
         </Text>
       ) : null}
     </View>
-  );
-}
-
-/* ---------------------------------------------------------------- parts */
-
-function Parts({ parts }: { parts: ContentPart[] }) {
-  const [activeId, setActiveId] = useState(() => parts[0]?.id ?? '');
-  const active = parts.find((part) => part.id === activeId) ?? parts[0];
-  if (!active) return null;
-
-  return (
-    <>
-      <View style={{ marginTop: spacing.xl }}>
-        <Segmented
-          options={parts.map((part) => ({ label: part.label, value: part.id }))}
-          value={active.id}
-          onChange={setActiveId}
-          accessibilityLabel="Part of the terms"
-        />
-      </View>
-      {/* Keyed so switching parts resets every accordion to its own default
-          rather than carrying one part's open state into another's clauses. */}
-      <View key={active.id}>
-        {active.blocks?.length ? (
-          <View style={{ marginTop: spacing.xl }}>
-            <BlockList blocks={active.blocks} />
-          </View>
-        ) : null}
-        <Sections sections={active.sections} />
-      </View>
-    </>
   );
 }
 

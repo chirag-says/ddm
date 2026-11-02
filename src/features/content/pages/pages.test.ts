@@ -43,12 +43,11 @@ const PAGES: ContentPage[] = [
 ];
 
 function sectionsOf(page: ContentPage): Section[] {
-  return page.parts ? page.parts.flatMap((part) => part.sections) : page.sections;
+  return page.sections;
 }
 
 function blocksOf(page: ContentPage): Block[] {
-  const partIntros = page.parts?.flatMap((part) => part.blocks ?? []) ?? [];
-  return [...partIntros, ...sectionsOf(page).flatMap((section) => section.blocks)];
+  return sectionsOf(page).flatMap((section) => section.blocks);
 }
 
 /** Every reader-facing string in a block, so the parity check misses nothing. */
@@ -157,23 +156,57 @@ describe('content pages are well formed', () => {
     }
   });
 
-  it('give the terms their three parts, general first', () => {
+  it('give the terms their sixteen clauses as accordions, the first one open', () => {
+    assert.equal(termsPage.sections.length, 16);
+    assert.ok(termsPage.sections.every((section) => section.collapsible), 'accordions');
     assert.deepEqual(
-      termsPage.parts?.map((part) => part.id),
-      ['general', 'buyer', 'seller']
+      termsPage.sections.map((section) => Boolean(section.defaultOpen)),
+      termsPage.sections.map((_, index) => index === 0)
     );
-    for (const part of termsPage.parts ?? []) {
-      assert.ok(part.sections.every((section) => section.collapsible), `${part.id}: accordions`);
-      assert.ok(part.sections[0]?.defaultOpen, `${part.id}: first clause opens by default`);
+  });
+
+  it('carry the website’s dates as written, never computed', () => {
+    assert.equal(privacyPage.meta, 'Effective: 3 October 2026 · Last updated: 2 November 2026');
+    assert.equal(termsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
+    assert.equal(rewardsTermsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
+  });
+});
+
+describe('the DPDP text (website 6c53ffd)', () => {
+  const legal = [privacyPage, termsPage, rewardsTermsPage, contactPage];
+  const allText = (page: ContentPage) =>
+    [page.intro ?? '', ...blocksOf(page).flatMap(textsOf)].join('\n');
+
+  it('names the Grievance Officer the same way on privacy, terms and contact', () => {
+    for (const page of [privacyPage, termsPage, contactPage]) {
+      const officers = blocksOf(page).filter((block) => block.type === 'contact' && block.name);
+      assert.deepEqual(
+        officers.map((block) => block.type === 'contact' && [block.name, block.role, block.email, block.phone, block.address]),
+        [
+          [
+            'Mrs. Arti Ashok Jadhav',
+            'Data Protection & Grievance Officer',
+            'grievance@dealdirect.in',
+            '+91 22 4608 9735',
+            '129, Growmore Tower, Sector 2, Kharghar, Navi Mumbai 410210, Maharashtra',
+          ],
+        ],
+        page.id
+      );
     }
   });
 
-  it('never invent a date', () => {
-    // The website computes this page's "last updated" as today. That is not a
-    // date, so the app shows none. If a real one is added there, add it here.
-    assert.equal(rewardsTermsPage.meta, undefined);
-    assert.equal(privacyPage.meta, 'Last updated: February 2026');
-    assert.equal(termsPage.meta, 'Effective date: 21 February 2026');
+  it('leaves no placeholder and none of the old B2B terms behind', () => {
+    for (const page of legal) {
+      assert.doesNotMatch(allText(page), /to be confirmed|B2B|Aadhaar, GST|payment settlement/i, page.id);
+    }
+  });
+
+  it('says adults only, the 90-day response, and the builder relay', () => {
+    assert.match(allText(privacyPage), /You must be 18 or older to create an account/);
+    assert.match(allText(privacyPage), /We will respond within 90 days/);
+    assert.match(allText(privacyPage), /our team passes your name, phone number and email address to the builder/);
+    assert.match(allText(termsPage), /18 or older and competent to contract under the Indian Contract Act, 1872/);
   });
 });
 

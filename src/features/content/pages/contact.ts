@@ -1,7 +1,7 @@
 // Explicit `.ts`: the page files are imported by `pages.test.ts` under
 // `node --test`, which resolves ES modules by exact specifier. Same convention
 // as `src/analytics`; see the note in tsconfig.json.
-import { SUPPORT_CONTACT } from '../support.ts';
+import { GRIEVANCE_OFFICER, SUPPORT_CONTACT } from '../support.ts';
 import type { ContentPage } from './model';
 
 /**
@@ -66,6 +66,15 @@ export const contactPage: ContentPage = {
           ],
         },
       ],
+    },
+    {
+      // Not on the website's contact page; the same block its privacy policy
+      // and terms print, so a complaint about personal data has a named
+      // person from the page people open to complain.
+      id: 'grievance',
+      title: 'Grievance officer',
+      icon: 'shield-checkmark-outline',
+      blocks: [GRIEVANCE_OFFICER],
     },
   ],
 };

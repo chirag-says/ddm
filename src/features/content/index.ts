@@ -52,7 +52,6 @@ export {
   parseRichText,
   type Block,
   type ContentPage,
-  type ContentPart,
   type RichText,
   type Section,
 } from './pages/model';

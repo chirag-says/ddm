@@ -104,21 +104,12 @@ export interface Section {
   blurb?: string;
   icon?: IconName;
   blocks: Block[];
-  /** Renders as an accordion. The terms run to forty clauses; open, they are a wall. */
+  /** Renders as an accordion. The terms run to sixteen clauses; open, they are a wall. */
   collapsible?: boolean;
   defaultOpen?: boolean;
 }
 
-/** A tab within a page. The terms have three: general, buyer, seller. */
-export interface ContentPart {
-  id: string;
-  label: string;
-  /** Sits above the sections: the note saying which users a part applies to. */
-  blocks?: Block[];
-  sections: Section[];
-}
-
-interface ContentPageBase {
+export interface ContentPage {
   id: string;
   /** Small label above the title: "Legal", "About". */
   eyebrow: string;
@@ -128,7 +119,5 @@ interface ContentPageBase {
   meta?: string;
   /** The website route carrying the same text. See the module doc in `../index.ts`. */
   webPath: `/${string}`;
+  sections: Section[];
 }
-
-export type ContentPage = ContentPageBase &
-  ({ sections: Section[]; parts?: undefined } | { parts: ContentPart[]; sections?: undefined });

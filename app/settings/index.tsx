@@ -151,11 +151,12 @@ function MessagesGroup() {
     >
       <ListRow
         icon="megaphone-outline"
-        label="Offers and new projects"
+        // The name the privacy policy uses for it.
+        label="Offers and new project updates"
         detail="By email, SMS or WhatsApp"
         trailing={
           <Switch
-            accessibilityLabel="Offers and new projects by email, SMS or WhatsApp"
+            accessibilityLabel="Offers and new project updates by email, SMS or WhatsApp"
             value={value}
             disabled={isSaving}
             onValueChange={(next) => void setMarketing(next)}
