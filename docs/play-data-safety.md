@@ -50,7 +50,7 @@ Req = required to use the app; Opt = optional or only in a flow the user chooses
 | App activity | Other user-generated content | Yes (property listings, reviews, reports) | No | Opt | App functionality | `src/types/backend/review.ts:47-53` |
 | App activity | Installed apps / other actions | No | | | | |
 | Web browsing | any | No | | | | |
-| App info and performance | Crash logs | Yes, when `EXPO_PUBLIC_SENTRY_DSN` is set in the EAS build env (it is not in `eas.json`, `.env` or `.env.example`; confirm in EAS secrets). Sentry sends account id and role only, no PII, no replay | No | Req when enabled | Analytics (Play's wording for crash reporting) | `src/observability/sentry.ts:43-91` |
+| App info and performance | Crash logs | Yes: `EXPO_PUBLIC_SENTRY_DSN` is set in the `preview` and `production` profiles of `eas.json` (Sentry org `dealdirect`, EU region, since 2026-11-02). Sentry sends account id and role only, no PII, no replay | No | Req | Analytics (Play's wording for crash reporting) | `src/observability/sentry.ts:43-91` |
 | App info and performance | Diagnostics | Same as crash logs (10% traces) | No | Req when enabled | Analytics | `sentry.ts:43-81` |
 | App info and performance | Other performance data | No | | | | |
 | Device or other IDs | Device or other IDs | Yes (random install UUID sent as `anon` and `deviceHash`; Expo push token with app version) | No | Opt (push only after the OS grant); install id always | Analytics, fraud prevention, app functionality (push) | `src/analytics/installationId.ts:52-68`, `src/auth/deviceLink.ts:26-35`, `src/notifications/pushToken.ts:113-157` |
