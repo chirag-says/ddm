@@ -84,6 +84,16 @@ Estimate: ~+350/−20 across 8 files plus tests. If the retention job alone pass
 
 ### Phase 2: website (session 2, repo `client-next`, branch `master`)
 
+**DONE 2026-11-02**, `6c53ffd` (final legal text), `9915b81`, `5ea4abe`, `a8c1e44`, `05a7ba3`; pushed to `origin/main` and live (dealdirect.in/privacy shows the Grievance Officer, 0 markers on /privacy and /delete-account). Tests 63/63, lint at baseline. Correction: local `master` tracks `origin/main`; the deploy branch is `main` (a first `git push origin master` created a stray remote branch `master`, still there, Chirag to decide on deleting it). Chirag's calls: effective date stays 3 October 2026; no rewards notice period; builder disclosure on the confirmation only. Unverified in a browser: Google sign-in with consents, login redirect on `AGE_CONFIRMATION_REQUIRED` (needs the flag on), profile toggle save; covered in the 5.2 gate.
+
+### Phase 3 and 4 status
+
+**Phase 3 DONE 2026-11-02**: mobile `230282b`, `41a5d0e`, `a16dbbc`, `928e3ac`, `c74d5b1` (0.5.0), `5dc742b`, `3d6b57f` (legal text from website `6c53ffd`, 8/8 sampled sentences verbatim); not pushed. Typecheck clean, 499/499, lint 0 errors. `.env` socket now https (untracked). Size +479/−44 source, accepted by Chirag. Debt: a shared `ui/Checkbox` should replace the local `Tick` and three inline copies in ListingForm; existing bug, a referral code typed just before tapping Google may not be sent.
+
+**Phase 4 DONE 2026-11-02**: admin `b6eaf61`, pushed. Tests 9/9, eslint clean on changed files. Size +125 (shared `ReasonModal` also used by Block), accepted by Chirag. No admin page shows audit logs; `user_deleted` rows are visible via the API only. Live delete with a throwaway account is in the 5.2 gate.
+
+MAP.md committed in all four repos 2026-11-02 (backend `0d69519`, website `66e6d31`, admin `9457036`, mobile `f8e8469`), approved by Chirag; not yet pushed.
+
 | # | Change | Where |
 |---|---|---|
 | 2.1 | Resolve every `[To be confirmed]` from the decisions table | `src/app/privacy/PrivacyContent.jsx`, `src/app/terms/TermsContent.jsx`, `src/app/rewards/terms/RewardsTermsContent.jsx`, `src/app/delete-account/page.js`. Then delete `ToConfirm` from `src/components/Legal/LegalDocument.jsx` and the local copy in `delete-account/page.js` once no caller remains. |
