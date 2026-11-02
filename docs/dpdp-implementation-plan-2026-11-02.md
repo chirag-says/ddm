@@ -49,7 +49,7 @@ Out of scope, deliberately: parental consent for under-18s, privacy dashboard, n
 |---|---|---|
 | 0.1 | Mobile `.env:17` `EXPO_PUBLIC_SOCKET_URL` is `http://backend.dealdirect.in`; change to `https://` | one-character edit; `.env` is untracked |
 | 0.2 | ~~Sentry DSN in EAS~~ Done 2026-11-02 in another session: new Sentry org `dealdirect`, EU region, mobile DSN in `eas.json`. Crash logs are declared on the Play form; Sentry's region is EU in the notice | memory `dealdirect-sentry-org` |
-| 0.3 | MongoDB Atlas: cluster region and snapshot retention | Atlas console. Retention must be 1 year or less to match the decision; region goes in the notice's recipients table |
+| 0.3 | ~~MongoDB Atlas: cluster region and snapshot retention~~ Checked 2026-11-02: cluster `dealdirect`, AWS Mumbai (ap-south-1), Free M0 tier, **no backups** (M0 cannot have them). Notice: data held in India; nothing retained in backups. Separate business risk, not DPDP: production has no backup; Flex tier (~$8/mo) or a nightly mongodump is the fix, client's cost decision | done |
 | 0.4 | WhatsApp sender: production env already configured (Chirag, 2026-11-02). The notice names both possible senders, "Meta (WhatsApp Business) or our WhatsApp gateway hosted on Railway", so it stays true whichever the env selects | no action |
 | 0.5 | ~~Sanjay Goel's email~~ goel@gtc.in (Chirag, 2026-11-02) | done |
 
@@ -204,6 +204,7 @@ Phases 2, 3 and 4 can run in parallel sessions once Phase 1 is deployed; they to
 | Item | Who |
 |---|---|
 | Mobile `.env:17` socket URL to https (0.1) | Chirag, one-character edit |
-| Atlas region and snapshot retention (0.3) | Chirag, Atlas console |
+| Production database has no backup (0.3) | Client's cost decision: Atlas Flex tier or a nightly mongodump |
+| Atlas organisation has no security/operations contact | Chirag adds Sanjay Goel and himself in Organization Settings |
 | Play Console clicks and the two builds | Chirag, with my text and his OK per build |
 | Lawyer's read of the final English notice before translations | Client |
