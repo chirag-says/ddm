@@ -55,6 +55,8 @@ Out of scope, deliberately: parental consent for under-18s, privacy dashboard, n
 
 ### Phase 1: backend (session 1, repo `backend`)
 
+**DONE 2026-11-02**, commits `91773b6` and `1045bd3` on backend `main`, pushed and live (the new admin route answered 401 instead of 404 after the deploy). Tests: unit 808/808, integration 1198/1198; the 23 new tests failed before the change. Deviations from the table below, all smaller: 1.3 is one boolean `preferences.marketing` (both UIs are one tick), not three channels; 1.4 has no "refuse an admin" check because admins are a separate collection a `User` id cannot reach; 1.5 reuses `utils/cloudinaryAssets.js` `destroyAssets` (public id from the URL) instead of storing a `publicId`; 1.6 sweep is count-only until `RETENTION_SWEEP_LIVE=true`; 1.8 chose the 1-year TTL. Debt: accounts deleted before 2026-11-02 have no `DeletedAccount` marker, so their retained records are not swept (production holds test data only). Backend `MAP.md` drafted, uncommitted, awaiting Chirag's read.
+
 Everything here is additive. App 0.4.0 keeps working.
 
 | # | Change | Where | Notes |
