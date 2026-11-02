@@ -30,7 +30,7 @@ edit and a REPORT after the last (CLAUDE.md PACT 2 and W8).
 | Rights mechanism | Write to the Grievance Officer. No dashboard, no nominee feature. |
 | Grievance Officer | Mrs. Arti Ashok Jadhav, Data Protection & Grievance Officer, grievance@dealdirect.in, +91 22 4608 9735, 129 Growmore Tower, Sec 2, Kharghar, Navi Mumbai 410210 |
 | Response time | Within 90 days |
-| Breach owner | Sanjay Goel, CEO (internal procedure; email still to be supplied) |
+| Breach owner | Sanjay Goel, CEO, goel@gtc.in (internal procedure only) |
 | Marketing | Yes, with opt-in at signup (unticked) and a toggle in settings |
 | Builder enquiries | Admin relays to the builder; the user sees "Our team has it and will pass your details to the builder" |
 | Retention after account deletion | Leads, deals, project enquiries, backups, logs: 1 year, then deleted |
@@ -48,10 +48,10 @@ Out of scope, deliberately: parental consent for under-18s, privacy dashboard, n
 | # | Item | How to verify |
 |---|---|---|
 | 0.1 | Mobile `.env:17` `EXPO_PUBLIC_SOCKET_URL` is `http://backend.dealdirect.in`; change to `https://` | one-character edit; `.env` is untracked |
-| 0.2 | Is `EXPO_PUBLIC_SENTRY_DSN` set as an EAS secret for the production profile? | EAS dashboard. Decides whether crash logs are declared on the Play form |
+| 0.2 | ~~Sentry DSN in EAS~~ Done 2026-11-02 in another session: new Sentry org `dealdirect`, EU region, mobile DSN in `eas.json`. Crash logs are declared on the Play form; Sentry's region is EU in the notice | memory `dealdirect-sentry-org` |
 | 0.3 | MongoDB Atlas: cluster region and snapshot retention | Atlas console. Retention must be 1 year or less to match the decision; region goes in the notice's recipients table |
-| 0.4 | Which WhatsApp sender does production use, Meta Cloud API or WAHA on Railway? | backend `.env` on Hostinger (`WHATSAPP_PROVIDER`). Decides which name goes in the notice |
-| 0.5 | Sanjay Goel's email for the breach procedure | Chirag asks |
+| 0.4 | WhatsApp sender: production env already configured (Chirag, 2026-11-02). The notice names both possible senders, "Meta (WhatsApp Business) or our WhatsApp gateway hosted on Railway", so it stays true whichever the env selects | no action |
+| 0.5 | ~~Sanjay Goel's email~~ goel@gtc.in (Chirag, 2026-11-02) | done |
 
 ### Phase 1: backend (session 1, repo `backend`)
 
@@ -203,9 +203,7 @@ Phases 2, 3 and 4 can run in parallel sessions once Phase 1 is deployed; they to
 
 | Item | Who |
 |---|---|
-| Sanjay Goel's email | Chirag asks the client |
-| EAS production secrets (Sentry DSN) | Chirag, EAS dashboard |
-| Atlas region and snapshot retention | Chirag, Atlas console |
-| Production WhatsApp sender | Chirag, Hostinger env |
+| Mobile `.env:17` socket URL to https (0.1) | Chirag, one-character edit |
+| Atlas region and snapshot retention (0.3) | Chirag, Atlas console |
 | Play Console clicks and the two builds | Chirag, with my text and his OK per build |
 | Lawyer's read of the final English notice before translations | Client |
