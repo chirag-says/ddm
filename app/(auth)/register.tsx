@@ -74,7 +74,6 @@ export default function RegisterScreen() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     setTickError(null);
-    if (!canCreateAccount(ticks)) return;
 
     try {
       await registerDirect(

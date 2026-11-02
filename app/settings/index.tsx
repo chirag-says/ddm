@@ -146,7 +146,7 @@ function MessagesGroup() {
       footer={
         error
           ? 'Could not save that change. Your choice is as it was; please try again.'
-          : 'Messages about your account, enquiries and deals are always sent.'
+          : 'This does not change messages about your account, enquiries and deals.'
       }
     >
       <ListRow
