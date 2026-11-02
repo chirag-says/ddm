@@ -18,7 +18,7 @@ are declared as collected, not shared.
 | Does the app collect or share any required data types? | Yes | see below |
 | Is all user data encrypted in transit? | Yes | production and preview EAS profiles use `https://backend.dealdirect.in` (`eas.json:25-26`); backend forces HTTPS with HSTS (`server.js:345-358`); release manifest allows no cleartext. **Caveat:** the local `.env` still has `EXPO_PUBLIC_SOCKET_URL=http://backend.dealdirect.in` (`.env:17`), so a locally Gradle-built release would open the socket in cleartext. Change it to `https://` before any local release build. |
 | Do you provide a way for users to request data deletion? | Yes | in-app: Settings > Delete account (`app/settings/delete-account.tsx`), calls `DELETE /api/users/me`; web: `https://dealdirect.in/delete-account` (page exists in client-next but still carries `[To be confirmed]` markers; publish a clean version before quoting the URL) |
-| Deletion: is some data retained? | Yes, state it | kept after deletion: leads (name, email, phone snapshots), agreements, deal-proof documents, project bookings, reviews written, and the profile photo on Cloudinary (`backend/utils/aggregateDelete.js:222-264`). Retention period: 1 year then delete (Chirag's decision 2026-11-02; not yet implemented, the code has no clock). |
+| Deletion: is some data retained? | Yes, state it | kept after deletion for one year: enquiries (name, email, phone snapshots), deal records and documents, project enquiries; then anonymised or deleted by the `retention-sweep` job (backend `91773b6`, `jobs/retentionSweep.js`; count-only until `RETENTION_SWEEP_LIVE=true`). Reviews stay without a name. The profile photo is now destroyed on deletion (`utils/aggregateDelete.js`, step 7). |
 | Independent security review | No | none done |
 | Committed to the Families policy | No | app is 18+ |
 
@@ -30,9 +30,9 @@ Req = required to use the app; Opt = optional or only in a flow the user chooses
 |---|---|---|---|---|---|---|
 | Location | Precise location | Yes, only when an owner taps "Use my location" on the listing form; stored as the property's pin | No | Opt | App functionality | `src/features/listings/components/LocationPicker.tsx:128-146`, `formData.ts:140-141` |
 | Location | Approximate location | No. City detection runs on the device and only the chosen city name is sent as a search filter | No | — | — | `src/native/location.ts:98-127`, `src/features/home/detectCity.ts` |
-| Personal info | Name | Yes | No | Req | Account management, app functionality (shown to the other party of an enquiry or chat) | `src/types/backend/user.ts:108-131` |
-| Personal info | Email address | Yes | No | Req | Account management, app functionality | `user.ts:108-148` |
-| Personal info | Phone number | Yes | No | Opt at signup; required to post, enquire or contact | Account management (OTP), app functionality (owner receives it on an enquiry) | `src/auth/phoneGate.ts`, `user.ts:112-124` |
+| Personal info | Name | Yes | **Yes** (builders, project enquiries) | Req | Account management, app functionality, advertising or marketing (only with the opt-in) | `src/types/backend/user.ts:108-131` |
+| Personal info | Email address | Yes | **Yes** (builders, project enquiries) | Req | Account management, app functionality, advertising or marketing (only with the opt-in) | `user.ts:108-148` |
+| Personal info | Phone number | Yes | **Yes** (builders, project enquiries) | Opt at signup; required to post, enquire or contact | Account management (OTP), app functionality, advertising or marketing (only with the opt-in) | `src/auth/phoneGate.ts`, `user.ts:112-124` |
 | Personal info | User IDs | Yes (account id, referral code) | No | Req | Account management, analytics | `src/observability/sentry.ts:88-91` |
 | Personal info | Address | Yes (profile home address; property address) | No | Opt | App functionality | `user.ts:24-46`, `formData.ts:122-145` |
 | Personal info | Other info | Yes (date of birth, gender, bio) | No | Opt | App functionality | `src/features/profile/hooks.ts:40-45` |
@@ -71,12 +71,29 @@ Advertising ID: not collected (no AD_ID permission, no ads SDK).
 | Google Sign-In | user-initiated | idToken; backend reads sub, email, name, picture | `src/auth/googleSignIn.ts:148` |
 | OpenStreetMap tiles, unpkg (Leaflet) | map rendering in a WebView | IP and the map area viewed | `src/features/properties/components/map/leafletHtml.ts:91,118,130` |
 | OS geocoder (Android `Geocoder`) | on-device API, may call Google | coordinates or typed address | `src/native/location.ts:98-100,170-184` |
-| Builders | third party, by hand | enquirer name, phone, email for project enquiries (team passes them on; not in code). Whether the user is told on the form is an open client question. If this continues, it is "shared" under Play's rules unless the form says so at the time of the enquiry |  |
+| Builders | third party, by hand | enquirer name, phone, email for project enquiries: admin relays them to the builder (decided 2026-11-02). The enquiry confirmation tells the user so. Declared as **shared** on the form, because the user learns it on confirmation rather than choosing it beforehand |  |
+
+## Play Console text for release 0.5.0 (Phase 5.1)
+
+Chirag pastes; every answer above is the Data safety form. Also:
+
+- **Data deletion URL:** `https://dealdirect.in/delete-account` (live once the Phase 2 website push lands; check it shows no "To be confirmed").
+- **Privacy policy URL (store listing):** `https://dealdirect.in/privacy`.
+- **Target audience and content:** age groups "18 and over" only. Appeals to children: No. Content rating questionnaire: a property marketplace with user-to-user chat and user-generated listings; no violence, sexual content, gambling or drugs; users can interact and share their location only as a property pin.
+- **Release notes, en-IN** (281 characters, counted with `wc -m`, limit 500):
+
+```
+What's new in 0.5.0
+- Confirm you are 18 or older when you sign up
+- Choose whether you get offers by email, SMS or WhatsApp, and change it any time in Settings
+- Clearer account deletion: see exactly what is removed and what is kept for one year
+- Updated Privacy Policy and Terms
+```
 
 ## Before the form is submitted
 
-1. `.env:17` socket URL to `https://` (only matters for locally built releases).
-2. Publish `/delete-account` and `/privacy` on the website without `[To be confirmed]` markers; the store listing needs the privacy policy URL.
-3. Confirm whether the EAS production build sets `EXPO_PUBLIC_SENTRY_DSN`. If not, crash logs and diagnostics are "not collected" for now.
-4. Decide the builder-sharing wording (client question). Until then, declare nothing as shared and keep the enquiry form as is.
-5. Known gaps the policy must not contradict: profile photo not removed from Cloudinary on deletion; retained records have no 1-year clock yet; no analytics opt-out; deal documents public on Cloudinary unless `SENSITIVE_UPLOADS_PRIVATE` is set.
+1. ~~`.env:17` socket URL to `https://`~~ (Phase 3 session).
+2. Publish `/delete-account` and `/privacy` on the website without `[To be confirmed]` markers (Phase 2, then push).
+3. ~~Sentry DSN~~ set in `eas.json` preview and production since 2026-11-02: crash logs and diagnostics are collected.
+4. ~~Builder sharing~~ decided: declared as shared.
+5. Known gaps the policy must not contradict: no analytics opt-out; deal documents public on Cloudinary unless `SENSITIVE_UPLOADS_PRIVATE` is set; the retention sweep writes only after `RETENTION_SWEEP_LIVE=true`.
