@@ -5,7 +5,13 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { ApiError } from '@/api';
 import { SignInPrompt } from '@/auth';
-import { enquiryStatus, useCancelBooking, useMyBookings } from '@/features/projects';
+import {
+  ENQUIRY_SENT_DETAIL,
+  ENQUIRY_SENT_TITLE,
+  enquiryStatus,
+  useCancelBooking,
+  useMyBookings,
+} from '@/features/projects';
 import { relativeDay } from '@/lib';
 import { gesture, useTheme } from '@/theme';
 import { USER_CANCELLABLE_STATUSES } from '@/types/backend/project';
@@ -215,8 +221,8 @@ function StatusCard({
   const copy = {
     Sent: {
       icon: 'call-outline' as const,
-      title: 'Enquiry sent',
-      body: 'Our team will call you about this unit: availability, pricing and next steps.',
+      title: ENQUIRY_SENT_TITLE,
+      body: ENQUIRY_SENT_DETAIL,
     },
     Closed: {
       icon: 'checkmark-done-outline' as const,

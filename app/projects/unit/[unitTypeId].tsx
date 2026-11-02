@@ -8,6 +8,7 @@ import { ApiError } from '@/api';
 import { setPendingIntent, useAuth } from '@/auth';
 import {
   adaptProjectDetail,
+  ENQUIRY_SENT_MESSAGE,
   FactGrid,
   formatDadoHeight,
   splitHighlights,
@@ -617,7 +618,7 @@ function EnquirySheet({
 
   const handleSubmit = async () => {
     try {
-      const response = await createBooking({
+      await createBooking({
         projectId,
         unitTypeId,
         clientName: clientName.trim(),
@@ -628,9 +629,9 @@ function EnquirySheet({
       });
 
       close();
-      // The server's own sentence is the right one: it is the promise being
-      // made. The fallback only covers a response that arrives without one.
-      toast.show(response.message || 'Thanks. Our team will call you shortly.');
+      // Our own sentence, not the server's ("our team will call you"): it is
+      // where the buyer is told their details go to the builder.
+      toast.show(ENQUIRY_SENT_MESSAGE);
     } catch {
       // surfaced via `error` below
     }

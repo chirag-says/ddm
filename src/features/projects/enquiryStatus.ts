@@ -14,6 +14,16 @@
  * No imports, so `node --test` can load it directly.
  */
 
+/**
+ * What a buyer reads once a builder-unit enquiry is sent, wherever it is
+ * shown. Our team relays the enquirer's name, phone and email to the builder
+ * by hand, and this sentence is where the buyer is told so (DPDP; client
+ * decision 2026-11-02). Same words on the website.
+ */
+export const ENQUIRY_SENT_TITLE = 'Enquiry sent';
+export const ENQUIRY_SENT_DETAIL = 'Our team has it and will pass your details to the builder.';
+export const ENQUIRY_SENT_MESSAGE = `${ENQUIRY_SENT_TITLE}. ${ENQUIRY_SENT_DETAIL}`;
+
 export interface EnquiryStatusView {
   label: 'Sent' | 'Closed' | 'Withdrawn';
   /**

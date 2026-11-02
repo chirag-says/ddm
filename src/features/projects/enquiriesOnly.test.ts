@@ -4,7 +4,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { enquiryStatus } from './enquiryStatus.ts';
+import { ENQUIRY_SENT_MESSAGE, enquiryStatus } from './enquiryStatus.ts';
 
 /**
  * DealDirect takes no money from users (owner decision, 2026-10-19).
@@ -90,5 +90,22 @@ describe('enquiry status', () => {
     for (const status of ['completed', 'payment_submitted', 'confirmed', 'rejected', '', undefined]) {
       assert.equal(enquiryStatus(status).label, 'Closed', String(status));
     }
+  });
+});
+
+describe('a sent project enquiry', () => {
+  it('tells the buyer our team will pass their details to the builder', () => {
+    // DPDP: the builder is a recipient, and this is where the buyer is told.
+    assert.equal(
+      ENQUIRY_SENT_MESSAGE,
+      'Enquiry sent. Our team has it and will pass your details to the builder.'
+    );
+  });
+
+  it('shows that sentence after sending and on the enquiry itself', () => {
+    const unit = withoutComments(readFileSync(join(mobileRoot, 'app/projects/unit/[unitTypeId].tsx'), 'utf8'));
+    assert.match(unit, /toast\.show\(ENQUIRY_SENT_MESSAGE\)/);
+    const detail = withoutComments(readFileSync(join(mobileRoot, 'app/projects/booking/[bookingId].tsx'), 'utf8'));
+    assert.match(detail, /title: ENQUIRY_SENT_TITLE,\s*body: ENQUIRY_SENT_DETAIL/);
   });
 });

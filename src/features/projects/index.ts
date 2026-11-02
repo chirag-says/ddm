@@ -37,6 +37,12 @@ export {
 } from './projectDetail';
 
 export { useMyBookings, useCreateBooking, useCancelBooking } from './bookings';
-export { enquiryStatus, type EnquiryStatusView } from './enquiryStatus';
+export {
+  ENQUIRY_SENT_DETAIL,
+  ENQUIRY_SENT_MESSAGE,
+  ENQUIRY_SENT_TITLE,
+  enquiryStatus,
+  type EnquiryStatusView,
+} from './enquiryStatus';
 
 export { BookingRow, type BookingRowProps } from './components/BookingRow';
