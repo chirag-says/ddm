@@ -73,7 +73,7 @@ Advertising ID: not collected (no AD_ID permission, no ads SDK).
 | OS geocoder (Android `Geocoder`) | on-device API, may call Google | coordinates or typed address | `src/native/location.ts:98-100,170-184` |
 | Builders | third party, by hand | enquirer name, phone, email for project enquiries: admin relays them to the builder (decided 2026-11-02). The enquiry confirmation tells the user so. Declared as **shared** on the form, because the user learns it on confirmation rather than choosing it beforehand |  |
 
-## Play Console text for release 0.5.0 (Phase 5.1)
+## Play Console text for release 1.0.0 (Phase 5.1)
 
 Chirag pastes; every answer above is the Data safety form. Also:
 
@@ -83,7 +83,7 @@ Chirag pastes; every answer above is the Data safety form. Also:
 - **Release notes, en-IN** (281 characters, counted with `wc -m`, limit 500):
 
 ```
-What's new in 0.5.0
+What's new in 1.0.0
 - Confirm you are 18 or older when you sign up
 - Choose whether you get offers by email, SMS or WhatsApp, and change it any time in Settings
 - Clearer account deletion: see exactly what is removed and what is kept for one year
