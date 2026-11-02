@@ -5,7 +5,12 @@ import { ScrollView, View } from 'react-native';
 import { ApiError } from '@/api';
 import { GoogleSignInCancelled, RequireAuth, signInWithGoogle, useAuth } from '@/auth';
 import { confirmWithBiometrics } from '@/native';
-import { useDeleteAccount } from '@/features/profile';
+import {
+  DELETION_KEEPS,
+  DELETION_REMOVES,
+  deletionReceipt,
+  useDeleteAccount,
+} from '@/features/profile';
 import { Button, Input, PasswordInput, KeyboardAvoider, Screen, ScreenHeader, Text, useToast } from '@/ui';
 
 const CONFIRM_WORD = 'DELETE';
@@ -97,17 +102,9 @@ function DeleteAccountScreen() {
 
       const response = await deleteAccount(proof);
 
-      // The success message promises the listings are gone. When the cascade
-      // kept some back as deal evidence, say so instead of letting the promise
-      // stand — this is the sentence a data-protection request is measured
-      // against.
-      toast.show(
-        response.retainedListings
-          ? `Account deleted. ${response.retainedListings} ${
-              response.retainedListings === 1 ? 'property' : 'properties'
-            } tied to a live deal ${response.retainedListings === 1 ? 'was' : 'were'} kept on record.`
-          : 'Your account has been deleted.'
-      );
+      // From the server's own answer: what it kept and for how long. This is
+      // the sentence a data-protection request is measured against.
+      toast.show(deletionReceipt(response));
       router.replace('/(auth)/login');
     } catch {
       // surfaced via `error` below
@@ -132,8 +129,10 @@ function DeleteAccountScreen() {
             This cannot be undone
           </Text>
           <Text variant="footnote" className="mt-xs">
-            Your profile, your posted properties, saved properties, conversations and reward balance are
-            permanently removed. Any leads you have generated for owners are not affected.
+            {DELETION_REMOVES}
+          </Text>
+          <Text variant="footnote" className="mt-xs">
+            {DELETION_KEEPS}
           </Text>
         </View>
 

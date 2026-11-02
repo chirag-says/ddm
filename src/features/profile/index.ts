@@ -7,3 +7,4 @@ export {
   useMarketingPreference,
   type UpdateProfileValues,
 } from './hooks';
+export { DELETION_KEEPS, DELETION_REMOVES, deletionReceipt } from './deletionNotice';
