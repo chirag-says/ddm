@@ -14,7 +14,7 @@ export const privacyPage: ContentPage = {
   title: 'Privacy Policy',
   intro:
     'How DealDirect collects, uses, shares and protects your personal data, and how to exercise your rights under the Digital Personal Data Protection Act, 2023.',
-  meta: 'Effective: 3 October 2026 · Last updated: 2 November 2026',
+  meta: 'Effective: 3 October 2026 · Last updated: 4 November 2026',
   webPath: '/privacy',
   sections: [
     {
@@ -221,6 +221,10 @@ export const privacyPage: ContentPage = {
           text: 'We use only the cookies and device storage needed for the Platform to work and to remember your choices. We do not use advertising or tracking cookies.',
         },
         {
+          type: 'paragraph',
+          text: 'Maps and property videos on the website come from Google Maps and YouTube, which set their own cookies under Google’s privacy policy. They load only after you allow them, on your first visit or with the “Show” button in place of a map or video. You can change this any time with Cookie settings at the bottom of every page. Signing in with Google and opening the rewards store also connect you to those services, because you chose to use them.',
+        },
+        {
           type: 'cards',
           items: [
             {
@@ -238,6 +242,10 @@ export const privacyPage: ContentPage = {
             {
               title: 'dd_user_city, dd-theme, dealDirectRecentSearches, dd_proj_bookmarks (browser storage)',
               text: 'Your city, display theme, recent searches and saved projects, kept on your device.\n\n**How long:** Until you clear them',
+            },
+            {
+              title: 'dd_cookie_consent (browser storage)',
+              text: 'Remembers whether you allowed maps and videos from Google and YouTube.\n\n**How long:** Until you clear it or change it in Cookie settings',
             },
             {
               title: 'App secure storage and cache',

@@ -166,9 +166,16 @@ describe('content pages are well formed', () => {
   });
 
   it('carry the website’s dates as written, never computed', () => {
-    assert.equal(privacyPage.meta, 'Effective: 3 October 2026 · Last updated: 2 November 2026');
+    // 4 November: the website's cookie choice for Google Maps and YouTube embeds.
+    assert.equal(privacyPage.meta, 'Effective: 3 October 2026 · Last updated: 4 November 2026');
     assert.equal(termsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
     assert.equal(rewardsTermsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
+  });
+
+  it('explain the website cookie choice, as the website does', () => {
+    const cookies = blocksOf(privacyPage).flatMap(textsOf).join('\n');
+    assert.match(cookies, /Maps and property videos on the website come from Google Maps and YouTube/);
+    assert.match(cookies, /dd_cookie_consent/);
   });
 });
 
