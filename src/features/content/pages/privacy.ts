@@ -14,7 +14,7 @@ export const privacyPage: ContentPage = {
   title: 'Privacy Policy',
   intro:
     'How DealDirect collects, uses, shares and protects your personal data, and how to exercise your rights under the Digital Personal Data Protection Act, 2023.',
-  meta: 'Effective: 3 October 2026 · Last updated: 4 November 2026',
+  meta: 'Effective: 3 October 2026 · Last updated: 9 November 2026',
   webPath: '/privacy',
   sections: [
     {
@@ -246,6 +246,10 @@ export const privacyPage: ContentPage = {
             {
               title: 'dd_cookie_consent (browser storage)',
               text: 'Remembers whether you allowed maps and videos from Google and YouTube.\n\n**How long:** Until you clear it or change it in Cookie settings',
+            },
+            {
+              title: 'dd_app_banner (browser storage)',
+              text: 'Remembers that you dismissed the Get the app bar on your phone, so it stays away.\n\n**How long:** 7 days',
             },
             {
               title: 'App secure storage and cache',

@@ -167,7 +167,8 @@ describe('content pages are well formed', () => {
 
   it('carry the website’s dates as written, never computed', () => {
     // 4 November: the website's cookie choice for Google Maps and YouTube embeds.
-    assert.equal(privacyPage.meta, 'Effective: 3 October 2026 · Last updated: 4 November 2026');
+    // 9 November: the website's "get the app" bar and its 7-day dismissal (dd_app_banner).
+    assert.equal(privacyPage.meta, 'Effective: 3 October 2026 · Last updated: 9 November 2026');
     assert.equal(termsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
     assert.equal(rewardsTermsPage.meta, 'Effective: 2 November 2026 · Last updated: 2 November 2026');
   });
